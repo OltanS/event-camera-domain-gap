@@ -1,0 +1,3 @@
+[submodule "ddd20-utils"]
+	path = ddd20-utils
+	url = git@github.com:OltanS/ddd20-utils.git
