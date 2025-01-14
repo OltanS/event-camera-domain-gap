@@ -2,19 +2,9 @@
 # Halt if any command returns a non-zero status
 set -e
 
-# Change these as needed
-# --- Export Options ---
-EXPORT_DVS=1
-EXPORT_APS=1
-BINSIZE_MS=50
-HEIGHT=224
-WIDTH=224
-# --- Location Options ---
-DDD20_UTILS_DIR=/home/oltans/snn_development/ddd20-utils
-VENV_DIR=/home/oltans/virtual_environments/DDD20-utils
-IN_DIR=/home/oltans/snn_development/datasets/DDD17-mock
-OUT_DIR=/home/oltans/snn_development/datasets/Processed-Recordings
-CSV_FILE=/home/oltans/snn_development/recording-start-stop.csv
+CONFIG_FILE=config.env
+
+source $CONFIG_FILE
 # --- End of Changeable Options ---
 
 BINSIZE_S=$(echo "scale=3; $BINSIZE_MS / 1000" | bc)
