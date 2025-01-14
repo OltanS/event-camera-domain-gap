@@ -5,7 +5,8 @@ set -e
 CONFIG_FILE=config.env
 
 source $CONFIG_FILE
-# --- End of Changeable Options ---
+# Delete everything in OUT_DIR
+rm -rf "${OUT_DIR:?}"/*
 
 BINSIZE_S=$(echo "scale=3; $BINSIZE_MS / 1000" | bc)
 TODO_FILES=("$IN_DIR"/*)
