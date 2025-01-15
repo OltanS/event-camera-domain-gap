@@ -4,16 +4,14 @@ Flow: 0. Clone repo, set up venvs for ddd20-utils (python 2) and dvs processing 
 
 1. Set project variables by changing config.env
 2. Preprocess the data running prepare_data.sh
+3. ???
 
 ### TODO
 
-- Create venv in Odachi, install requirements +
-- Create function for continuing from checkpoint when training
-- Figure out how to mount onedrive to Odachi +
-- Create python 2 venv for event-framing the dataset using ddd20 utils
-- Write script for event framing everything on the onedrive using utils (and run it)
-- Create a lazy loading version of dataset
-- Change logic to lazy load the dataset
+- Populate recording-start-stop.csv
+- Download data onto HPC Scratch
+- Setup Python 2 preprocessing environment in Odachi DONE
+- Preprocess the data (by event framing) on Odachi
 
 ### Future
 
@@ -23,3 +21,13 @@ Flow: 0. Clone repo, set up venvs for ddd20-utils (python 2) and dvs processing 
 - Try with/without APS data
 - Try with/without preprocessing
 - Consider transfer learning from ImageNet for the non-RNN part of the network
+
+### Completed
+
+- Create venv in Odachi, install requirements DONE
+- Create function for continuing from checkpoint when training DONE
+- Figure out how to mount onedrive to Odachi DONE
+- Create python 2 venv for event-framing the dataset using ddd20 utils - DONE
+- Write script for event framing everything on the onedrive using utils DONE
+- Create a lazy loading version of dataset DONE
+- Change logic to lazy load the dataset DONE

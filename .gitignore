@@ -1,6 +1,8 @@
 # My files
 *.pth
 datasets
+.dvs
+.dddutils
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
