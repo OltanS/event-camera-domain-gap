@@ -5,6 +5,11 @@ set -e
 CONFIG_FILE=config.env
 
 source $CONFIG_FILE
+
+if [ ! -d "${OUT_DIR}" ]; then
+    mkdir -p "${OUT_DIR}"
+fi
+
 # Delete everything in OUT_DIR
 rm -rf "${OUT_DIR:?}"/*
 
@@ -27,8 +32,8 @@ do
     OUT_FILE_FULLPATH="${OUT_FILE_NO_EXTENSION}_bin${BINSIZE_MS}ms.hdf5"
     # Export data
     echo "### Exporting... ###"
-    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}"
-    python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
+    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py \"${TODO_FILE}\" --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}"
+    python2 ${DDD20_UTILS_DIR}/export.py \"${TODO_FILE}\" --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
 
     # Prepare and resize
     # This works inplace
