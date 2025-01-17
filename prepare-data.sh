@@ -25,6 +25,7 @@ do
     echo "### Working on $TODO_FILE ####"
     FILENAME=$(basename "$TODO_FILE")
 
+    # pull the tstart and tstop from recording-start-stop.csv
     TSTART=$(awk -F, -v f="$FILENAME" '$1 == f {print $2}' "$CSV_FILE")
     TSTOP=$(awk -F, -v f="$FILENAME" '$1 == f {print $3}' "$CSV_FILE")
 

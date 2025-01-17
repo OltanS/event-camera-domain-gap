@@ -1,9 +1,9 @@
 ## The project for processing DDD20 dataset using RNNs for performance improvement
 
-Flow: 0. Clone repo, set up venvs for ddd20-utils (python 2) and dvs processing (python 3) based on their respective requirements.txt files.
-
-1. (Optional but useful if the actual data is in windows, the spaced path names are a pain) Create symlinks from actual data directory by running create-symlinks.sh
-2. Set project variables by changing config.env (IN_DIR should be the dataset dir)
+Flow: 
+0. Clone repo, set up venvs for ddd20-utils (python 2) and dvs processing (python 3) based on their respective requirements.txt files. (Done automatically for me)
+1. Set project variables by changing config.env
+2. Create the dataset folder from the original dataset location by running create-datasetdir.sh
 3. Preprocess the data running prepare_data.sh
 3. ???
 
