@@ -2,14 +2,15 @@
 
 Flow: 0. Clone repo, set up venvs for ddd20-utils (python 2) and dvs processing (python 3) based on their respective requirements.txt files.
 
-1. Set project variables by changing config.env
-2. Preprocess the data running prepare_data.sh
+1. (Optional but useful if the actual data is in windows, the spaced path names are a pain) Create symlinks from actual data directory by running create-symlinks.sh
+2. Set project variables by changing config.env (IN_DIR should be the dataset dir)
+3. Preprocess the data running prepare_data.sh
 3. ???
 
 ### TODO
 
-- Populate recording-start-stop.csv
-- Download data onto HPC Scratch
+- Populate recording-start-stop.csv -> DONE for DDD17, need to for DDD20
+- Download data onto HPC Scratch -> Using WinSCP From Uni, DONE for DDD17, need to for DDD20
 - Setup Python 2 preprocessing environment in Odachi DONE
 - Preprocess the data (by event framing) on Odachi
 
