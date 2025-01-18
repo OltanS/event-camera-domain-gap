@@ -2,11 +2,16 @@
 # Halt if any command returns a non-zero status
 set -e
 
-DIRNAME="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-
 CONFIG_FILE=config.env
-
 source $CONFIG_FILE
+DIRNAME="$TMPDIR/$PACKAGE_NAME"
+
+DDD20_UTILS_DIR=$DIRNAME/$DDD20_UTILS_DIR
+VENV_DIR=$DIRNAME/$VENV_DIR
+IN_DIR=$DIRNAME/$IN_DIR
+OUT_DIR=$DIRNAME/$OUT_DIR
+CSV_FILE=$DIRNAME/$CSV_FILE
+
 
 if [ ! -d "${OUT_DIR}" ]; then
     mkdir -p "${OUT_DIR}"
@@ -29,21 +34,19 @@ do
 
     # pull the tstart and tstop from recording-start-stop.csv
     TSTART=$(awk -F, -v f="$FILENAME" '$1 == f {print $2}' "$CSV_FILE")
-    
+    TSTOP=$(awk -F, -v f="$FILENAME" '$1 == f {print $3}' "$CSV_FILE")    
     # Skip the file if TSTART is -1
     if [ "$TSTART" == "-1" ]; then
         echo "Skipping $TODO_FILE because TSTART is -1, marking unviable recording"
         continue
     fi
     
-    TSTOP=$(awk -F, -v f="$FILENAME" '$1 == f {print $3}' "$CSV_FILE")
-
     OUT_FILE_NO_EXTENSION="${OUT_DIR}/${FILENAME%.*}"
-    OUT_FILE_FULLPATH="${DIRNAME}/${OUT_FILE_NO_EXTENSION}_bin${BINSIZE_MS}ms.hdf5"
+    OUT_FILE_FULLPATH="${OUT_FILE_NO_EXTENSION}_bin${BINSIZE_MS}ms.hdf5"
     # Export data
     echo "### Exporting... ###"
-    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${DIRNAME}/${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH}\ --tstart ${TSTART} --tstop ${TSTOP}"
-    python2 ${DDD20_UTILS_DIR}/export.py ${DIRNAME}/${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
+    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH}\ --tstart ${TSTART} --tstop ${TSTOP}"
+    python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
 
     # Prepare and resize
     # This works inplace
