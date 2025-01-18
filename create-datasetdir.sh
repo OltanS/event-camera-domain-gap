@@ -18,12 +18,14 @@ do
 done
 echo "Done."
 
-cd ..
+cd ../../
 
 echo "Creating $OUT_DIR"
 if [ ! -d "${OUT_DIR}" ]; then
     mkdir -p "${OUT_DIR}"
 fi
+
+cd $OUT_DIR
 
 echo "Populating $OUT_DIR with symlinks to data from $PROCESSED_DIR"
 TODO_FILES=("$PROCESSED_DIR"/*)

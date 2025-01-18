@@ -11,8 +11,8 @@ Flow:
 
 - Populate recording-start-stop.csv -> DONE for DDD17, need to for DDD20
 - Download data onto HPC Scratch -> Using WinSCP From Uni, DONE for DDD17, need to for DDD20
-- Setup Python 2 preprocessing environment in Odachi DONE
-- Preprocess the data (by event framing) on Odachi
+- Figure out why architecture doesn't work...
+- Implement clipping at 3x STDDEV
 
 ### Future
 
@@ -32,3 +32,5 @@ Flow:
 - Write script for event framing everything on the onedrive using utils DONE
 - Create a lazy loading version of dataset DONE
 - Change logic to lazy load the dataset DONE
+- Setup Python 2 preprocessing environment in Odachi DONE
+- Preprocess the data (by event framing) on Odachi DONE
