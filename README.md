@@ -13,6 +13,7 @@ Flow:
 - Download data onto HPC Scratch -> Using WinSCP From Uni, DONE for DDD17, need to for DDD20
 - Figure out why architecture doesn't work...
 - Implement clipping at 3x STDDEV
+- Turn ResNetRNNStated to inherit from ResNetRNN
 
 ### Future
 
