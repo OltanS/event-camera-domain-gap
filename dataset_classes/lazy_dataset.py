@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import glob
 import h5py
 
-class LazyDDD20Dataset(Dataset):
+class LazyDataset(Dataset):
     '''
     adapted from https://stackoverflow.com/questions/74375033/pytorch-dataloader-for-multiple-files-with-sliding-window
     '''

@@ -13,7 +13,6 @@ Flow:
 - Download data onto HPC Scratch -> Using WinSCP From Uni, DONE for DDD17, need to for DDD20
 - Figure out why architecture doesn't work...
 - Implement clipping at 3x STDDEV
-- Turn ResNetRNNStated to inherit from ResNetRNN
 
 ### Future
 
@@ -35,3 +34,4 @@ Flow:
 - Change logic to lazy load the dataset DONE
 - Setup Python 2 preprocessing environment in Odachi DONE
 - Preprocess the data (by event framing) on Odachi DONE
+- Turn ResNetRNNStated to inherit from ResNetRNN DONE

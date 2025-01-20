@@ -19,8 +19,10 @@ import glob
 
 from dotenv import load_dotenv
 
-from DatasetClasses.LazyDDD20Dataset import LazyDDD20Dataset
-from NetworkModels import ResNetRNN, ResNetRNNStated, ResidualBlock
+from dataset_classes.lazy_dataset import LazyDataset
+from models.resnet_rnn import ResnetRNN
+from models.resnet_rnn_stated import ResnetRNNStated
+from models.residual_block import ResidualBlock
 ###########################################################################################################
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Device is {device}")
@@ -152,8 +154,8 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-train_dataset = LazyDDD20Dataset(TRAINING_DIR, transform=transform, window_size=1, use_aps=USE_APS, use_dvs=USE_DVS, DVS_FRAME_NAME=DVS_FRAME_NAME, APS_FRAME_NAME=APS_FRAME_NAME, DTYPE=DTYPE)
-test_dataset = LazyDDD20Dataset(TEST_DIR, transform=transform, window_size=1, use_aps=USE_APS, use_dvs=USE_DVS, DVS_FRAME_NAME=DVS_FRAME_NAME, APS_FRAME_NAME=APS_FRAME_NAME, DTYPE=DTYPE)
+train_dataset = LazyDataset(TRAINING_DIR, transform=transform, window_size=1, use_aps=USE_APS, use_dvs=USE_DVS, DVS_FRAME_NAME=DVS_FRAME_NAME, APS_FRAME_NAME=APS_FRAME_NAME, DTYPE=DTYPE)
+test_dataset = LazyDataset(TEST_DIR, transform=transform, window_size=1, use_aps=USE_APS, use_dvs=USE_DVS, DVS_FRAME_NAME=DVS_FRAME_NAME, APS_FRAME_NAME=APS_FRAME_NAME, DTYPE=DTYPE)
 
 # load the data, can implement batching etc. here
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
@@ -162,9 +164,9 @@ print(f"Train loader has {len(train_loader)} batches, equalling {len(train_loade
 
 def setup_model(model_dims, use_stated):
     if use_stated:
-        model = ResNetRNNStated(ResidualBlock, [3, 4, 6, 3], num_channels=model_dims).to(device)
+        model = ResnetRNNStated(ResidualBlock, [3, 4, 6, 3], num_channels=model_dims).to(device)
     else:
-        model = ResNetRNN(ResidualBlock, [3, 4, 6, 3], num_channels=model_dims).to(device)
+        model = ResnetRNN(ResidualBlock, [3, 4, 6, 3], num_channels=model_dims).to(device)
     
     return model
 

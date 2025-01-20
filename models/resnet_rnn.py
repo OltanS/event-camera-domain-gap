@@ -1,9 +1,9 @@
 import torch.nn as nn
 import math
 
-class ResNetRNN(nn.Module):
+class ResnetRNN(nn.Module):
     def __init__(self, block, layers, num_channels, num_classes = 1):
-        super(ResNetRNN, self).__init__()
+        super(ResnetRNN, self).__init__()
         self.inplanes = 64
         self.conv1 = nn.Sequential(
                         nn.Conv2d(num_channels, 64, kernel_size = 7, stride = 2, padding = 3),
