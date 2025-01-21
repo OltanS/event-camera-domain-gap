@@ -1,6 +1,10 @@
 from models.resnet_rnn import ResnetRNN
 
 class ResnetRNNStated(ResnetRNN):
+    def __init__(self, block, layers, num_channels, num_classes=1):
+        super().__init__(block, layers, num_channels, num_classes)
+        self.hidden = None
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.maxpool(x)
