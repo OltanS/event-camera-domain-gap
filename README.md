@@ -16,9 +16,12 @@ Flow:
 
 ### Future
 
-- Investigate transformers for processing the data (self attention?)
-- Investigate GRU
-- Investigate RNN
+- Investigate:
+    - 3D CNN (C3D, I3D)
+    - Attention + CNN/Attention + RNN/ Attention + CRNN
+    - Transformer Models
+
+- Investigate GRU DONE
 - Try with/without APS data
 - Try with/without preprocessing
 - Consider transfer learning from ImageNet for the non-RNN part of the network
