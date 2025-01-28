@@ -17,7 +17,6 @@ class LazyDataset(Dataset):
         self.window_size = window_size
         self.use_aps = use_aps
         self.use_dvs = use_dvs
-        self.inv_apsdvs_max = 1 / 255
         self.apsdvs_min = 0
         self.DVS_FRAME_NAME = DVS_FRAME_NAME
         self.APS_FRAME_NAME = APS_FRAME_NAME
@@ -64,13 +63,6 @@ class LazyDataset(Dataset):
             steering_angles = np.array(f["steering_wheel_angle"][window_index:window_index + self.window_size])
         # print(f"Combined frames shape is {combined_frames.shape}.")
         return combined_frames, steering_angles
-    
-    # used to normalise the aps and dvs frames to the range [0, 1]
-    def normalise(self, data):
-        # shorthand for (data - self.apsdvs_min) / (self.apsdvs_max - self.apsdvs_min) since we know the min is 0
-        new_data = np.empty_like(data, dtype=self.DTYPE)
-        new_data = data * self.inv_apsdvs_max
-        return new_data
 
     def __len__(self):
         return self.total_windows
@@ -79,7 +71,6 @@ class LazyDataset(Dataset):
         filename = self.dataset_dict[index]["filename"]
         window_index = self.dataset_dict[index]["window_index"]
         data, target = self.read_file(filename, window_index)
-        data = self.normalise(data)
         
         if self.transform:
             data = self.transform(data)
