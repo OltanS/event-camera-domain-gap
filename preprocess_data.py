@@ -21,7 +21,7 @@ CSV_FILE = os.getenv("CSV_FILE")
 
 # --- Preprocessing parameters --- #
 PERFORM_PRUNING = bool(int(os.getenv("PERFORM_PRUNING")))
-BATCHED_PRUNING = bool(int(os.getenv("BATCHED_PRUNING")))
+WINDOWED_PRUNING = bool(int(os.getenv("WINDOWED_PRUNING")))
 # km/h for speed to be considered high enough
 SPEED_THRESHOLD = float(os.getenv("SPEED_THRESHOLD"))
 # absolute value for degree of steering to be considered high enough
@@ -32,11 +32,11 @@ MAX_STEERING = int(os.getenv("MAX_STEERING"))
 
 # --- Training parameters --- #
 TRAINING_SPLIT = float(os.getenv("TRAINING_SPLIT"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE"))
+WINDOW_SIZE = int(os.getenv("WINDOW_SIZE"))
 
 # Prune on a frame-by-frame basis.
-if not BATCHED_PRUNING:
-    BATCH_SIZE = 1
+if not WINDOWED_PRUNING:
+    WINDOW_SIZE = 1
 
 # --- Fix randomness --- #
 random.seed(RANDOM_SEED)
@@ -104,30 +104,30 @@ def main():
         training_files = glob.glob(f"{TRAINING_DIR}/*.hdf5")
         for i, file in enumerate(training_files):
             p = Path(file)
-            print(f"Pruning file: {p.name}. Batch size is {BATCH_SIZE}. [{i + 1}/{len(training_files)}]")
+            print(f"Pruning file: {p.name}. Batch size is {WINDOW_SIZE}. [{i + 1}/{len(training_files)}]")
             discarded_batches = []
             with h5py.File(file, "r") as f:
                 speeds = np.array(f["vehicle_speed"])
                 steering_angles = np.array(f["steering_wheel_angle"])
                 file_len = len(speeds)
-                for i in range(0, len(speeds), BATCH_SIZE):
+                for i in range(0, len(speeds), WINDOW_SIZE):
                     if PRUNE_SPEED:
-                        if np.median(speeds[i:i+BATCH_SIZE]) < SPEED_THRESHOLD:
+                        if np.median(speeds[i:i+WINDOW_SIZE]) < SPEED_THRESHOLD:
                             discarded_batches.append(i)
                             continue
                     if PRUNE_STEERING:
-                        if np.median(np.absolute(steering_angles[i:i+BATCH_SIZE])) < STEERING_THRESHOLD and random.random() < STEERING_DISCARD_CHANCE:
+                        if np.median(np.absolute(steering_angles[i:i+WINDOW_SIZE])) < STEERING_THRESHOLD and random.random() < STEERING_DISCARD_CHANCE:
                             discarded_batches.append(i)
                             continue
                         
                     # remove extreme values
-                    if any(angle > MAX_STEERING or angle < MIN_STEERING for angle in steering_angles[i:i+BATCH_SIZE]):
+                    if any(angle > MAX_STEERING or angle < MIN_STEERING for angle in steering_angles[i:i+WINDOW_SIZE]):
                         discarded_batches.append(i)
                         continue   
 
                 indices_to_remove = []
                 for idx in discarded_batches:
-                    indices_to_remove.extend(range(idx, idx + BATCH_SIZE))
+                    indices_to_remove.extend(range(idx, idx + WINDOW_SIZE))
                 indices_to_keep = np.setdiff1d(np.arange(file_len), indices_to_remove)
                 renamed_file = f"{PRUNED_DATASET_PATH}/{p.stem}_pruned.hdf5"
                 with h5py.File(renamed_file, "w") as new_f:
@@ -139,7 +139,7 @@ def main():
                         full_data = np.array(f[dset_name])
                         new_f.create_dataset(dset_name, data=full_data[indices_to_keep])
                 
-                print(f"Discarded {len(discarded_batches)} batches, as their average was below the thresholds, totalling {len(indices_to_remove)} frames.")
+                print(f"Discarded {len(discarded_batches)} batches, as their median was below the thresholds, totalling {len(indices_to_remove)} frames.")
                 print(f"{len(indices_to_keep)} frames remain, with average speed {np.average(speeds[indices_to_keep])} and average absolute steering {np.average(np.absolute(steering_angles[indices_to_keep]))}") 
 
         for f in glob.glob(f"{TRAINING_DIR}/*.hdf5"):

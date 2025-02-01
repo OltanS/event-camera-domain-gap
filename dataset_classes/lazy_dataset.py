@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from torch.utils.data import Dataset
 
@@ -49,20 +50,25 @@ class LazyDataset(Dataset):
     
     def read_file(self, filename, window_index):
         with h5py.File(filename, "r") as f:
-            if self.use_dvs:
-                    dvs_frame = np.array(f[self.DVS_FRAME_NAME][window_index:window_index + self.window_size])
-            if self.use_aps:
-                    aps_frame = np.array(f[self.APS_FRAME_NAME][window_index:window_index + self.window_size])
+            start = window_index * self.window_size
+            end = start + self.window_size
+
+            # For example, if both APS and DVS streams are used,
+            # load each stream and concatenate along the channel dimension.
+            data_aps = f[self.APS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
+            data_dvs = f[self.DVS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
             if self.use_aps and self.use_dvs:
-                # the frames are 1 x 224 x 224, we want 224 x 224 x 2 after concat
-                combined_frames = np.concatenate((dvs_frame, aps_frame), axis=0)
-            else:
-                combined_frames = aps_frame if self.use_aps else dvs_frame
-            
-            combined_frames = combined_frames.transpose(1, 2, 0)
-            steering_angles = np.array(f["steering_wheel_angle"][window_index:window_index + self.window_size])
-        # print(f"Combined frames shape is {combined_frames.shape}.")
-        return combined_frames, steering_angles
+                data = np.stack((data_aps, data_dvs), axis=3)  # shape: (window_size, H, W, C1+C2)
+            elif self.use_aps:
+                data = np.expand_dims(data_aps, axis=3)  # shape: (window_size, H, W, C)
+            elif self.use_dvs:
+                data = np.expand_dims(data_dvs, axis=3)  # shape: (window_size, H, W, C)
+
+            # Read target steering angles corresponding to the window.
+            target = f["steering_wheel_angle"][start:end]  # shape: (window_size,)
+            # Ensure target is in numpy array format.
+            target = np.array(target)
+        return data, target
 
     def __len__(self):
         return self.total_windows
@@ -73,7 +79,14 @@ class LazyDataset(Dataset):
         data, target = self.read_file(filename, window_index)
         
         if self.transform:
-            data = self.transform(data)
+                # print(f"Data shape {data.shape} target shape {target.shape}")
+                if self.transform:
+                    # If the data represents a sequence (e.g. multiple frames), apply transform per frame.
+                    if data.ndim == 4:  # expecting shape (num_frames, height, width, channels)
+                        frames = [self.transform(frame) for frame in data]
+                        data = torch.stack(frames, dim=0)
+                    else:
+                        data = self.transform(data)
         
         target = target.astype(self.DTYPE)
         if self.target_transform:

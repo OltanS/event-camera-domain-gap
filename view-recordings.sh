@@ -20,7 +20,8 @@ for f in "${TODO_FILES[@]}"; do
     python "${DDD20_UTILS_DIR}/view.py" "$IN_DIR/$f"
     read -p "Enter start time: " start_time
     read -p "Enter end time: " end_time
-    echo "$f,$start_time,$end_time" >> $CSV_FILE
+    read -p "1 if recording is flipped, 0 otherwise: " flipped
+    echo "$f,$start_time,$end_time,$flipped" >> $CSV_FILE
     done
 
 deactivate
