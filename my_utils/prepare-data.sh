@@ -8,17 +8,12 @@ DIRNAME="$TMPDIR/$PACKAGE_NAME"
 
 DDD20_UTILS_DIR=$DIRNAME/$DDD20_UTILS_DIR
 VENV_DIR=$DIRNAME/$VENV_DIR
-IN_DIR=$DIRNAME/$IN_DIR
-OUT_DIR=$DIRNAME/$OUT_DIR
 CSV_FILE=$DIRNAME/$CSV_FILE
 
 
 if [ ! -d "${OUT_DIR}" ]; then
     mkdir -p "${OUT_DIR}"
 fi
-
-# Delete everything in OUT_DIR
-rm -rf "${OUT_DIR:?}"/*
 
 BINSIZE_S=$(awk "BEGIN {printf \"%.3f\", $BINSIZE_MS / 1000}")
 TODO_FILES=("$IN_DIR"/*.hdf5)
@@ -43,9 +38,16 @@ do
     
     OUT_FILE_NO_EXTENSION="${OUT_DIR}/${FILENAME%.*}"
     OUT_FILE_FULLPATH="${OUT_FILE_NO_EXTENSION}_bin${BINSIZE_MS}ms.hdf5"
+    
+    # Check if output file already exists
+    if [ -f "${OUT_FILE_FULLPATH}" ]; then
+        echo "Output file ${OUT_FILE_FULLPATH} already exists. Skipping export for $TODO_FILE."
+        continue
+    fi
+    
     # Export data
     echo "### Exporting... ###"
-    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH}\ --tstart ${TSTART} --tstop ${TSTOP}"
+    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}"
     python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
 
     # Prepare and resize

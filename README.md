@@ -9,10 +9,7 @@ Flow:
 
 ### TODO
 
-- Populate recording-start-stop.csv -> DONE for DDD17, need to for DDD20
-- Download data onto HPC Scratch -> Using WinSCP From Uni, DONE for DDD17, need to for DDD20
-- Figure out why architecture doesn't work...
-- Implement clipping at 3x STDDEV
+- Perform data augmentation on training data
 
 ### Future
 
@@ -38,3 +35,8 @@ Flow:
 - Setup Python 2 preprocessing environment in Odachi DONE
 - Preprocess the data (by event framing) on Odachi DONE
 - Turn ResNetRNNStated to inherit from ResNetRNN DONE
+- Populate recording-start-stop.csv -> DONE
+- Make ResNet pull from pretrained -> DONE
+- Drop extreme (180 + deg) angles -> DONE
+- Seperate preprocessing -> DONE
+- Populate recording-start-stop.csv -> DONE

@@ -16,8 +16,9 @@ BINSIZE_MS = int(os.getenv("BINSIZE_MS"))
 BINS_PER_S = int(1000 / BINSIZE_MS)
 
 # --- Location parameters --- #
-DATASET_DIR = os.getenv("OUT_DIR")
+DATA_DIR = os.getenv("OUT_DIR")
 CSV_FILE = os.getenv("CSV_FILE")
+PROCESSED_DIR = os.getenv("PROCESSED_DIR")
 
 # --- Preprocessing parameters --- #
 PERFORM_PRUNING = bool(int(os.getenv("PERFORM_PRUNING")))
@@ -41,8 +42,8 @@ if not WINDOWED_PRUNING:
 # --- Fix randomness --- #
 random.seed(RANDOM_SEED)
 
-TRAINING_DIR = f"{DATASET_DIR}/Training"
-TEST_DIR = f"{DATASET_DIR}/Test"
+TRAINING_DIR = f"{PROCESSED_DIR}/Training"
+TEST_DIR = f"{PROCESSED_DIR}/Test"
 
 
 # ------------ Functions ------------ #
@@ -52,10 +53,11 @@ def search_csv(file_path, target):
     Look for the first row of CSV for target, return its second and third column if found.
     '''
     with open(file_path, 'r') as file:
+        "returns start_time, end_time, is_flipped"
         reader = csv.reader(file)
         for row in reader:
             if row[0] == target:
-                return int(row[1]), int(row[2])
+                return int(row[1]), int(row[2]), bool(int(row[3]))
     return None, None
 
 def main():
@@ -74,12 +76,12 @@ def main():
         for f in glob.glob(TEST_DIR + "/*"):
             os.remove(f)
 
-    data_files = sorted(glob.glob(f"{DATASET_DIR}/*.hdf5"))
+    data_files = sorted(glob.glob(f"{DATA_DIR}/*.hdf5"))
     for i, df in enumerate(data_files):
         p = Path(df)
         # The issue is, there are unused bits of the file at the beginning and end, that are not chopped off with the previous preprocessing.
         # Thankfully, where we should chop is shown in the relevant CSV file, and we can calculate the indices they correspond to.
-        start_s, end_s = search_csv(CSV_FILE, p.name.replace(f"_bin{BINSIZE_MS}ms", ''))
+        start_s, end_s, is_flipped = search_csv(CSV_FILE, p.name.replace(f"_bin{BINSIZE_MS}ms", ''))
         start_index, end_index = start_s * BINS_PER_S, end_s *BINS_PER_S
         with h5py.File(df, "r") as f:
             print(f"Splitting {p.name} into training and testing subsections. [{i + 1}/{len(data_files)}]")
@@ -90,6 +92,13 @@ def main():
                 for key, data in f.items():
                     data_len = end_index - start_index
                     split_index = math.ceil(data_len * TRAINING_SPLIT)
+                    # if the CSV indicates the video should be flipped, flip video streams upside down.
+                    if is_flipped and (key.lower().startswith("aps_frame") or key.lower().startswith("dvs_frame")):
+                        print(f"File {p.name} is flipped, flipping video data key: {key.lower()}")
+                        # for processing speed, it would be faster to flip the "unflipped" videos, since it doesnt matter which way the video is flipped.
+                        # But for viewing purposes, it is better to flip the "flipped" videos.
+                        data = np.flipud(data)
+
                     train_f.create_dataset(key, data=data[start_index:split_index])
                     test_f.create_dataset(key, data=data[split_index:end_index])
 
