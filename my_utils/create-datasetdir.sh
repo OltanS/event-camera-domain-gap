@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Creates the dataset dir, creates symlinks to the original dataset
+cd ..
 source config.env
 
 echo "Creating $IN_DIR"
@@ -25,6 +26,8 @@ if [ ! -d "${OUT_DIR}" ]; then
     mkdir -p "${OUT_DIR}"
 fi
 
+# Below is useful for when you don't want to prepare-data every time, but we will have to now, with DDD20 being included as well.
+# Still, after the first time you can copy the results to PROCESSED_DIR, and not have to run prepare-data again.
 cd $OUT_DIR
 
 echo "Populating $OUT_DIR with symlinks to data from $PROCESSED_DIR"

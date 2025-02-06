@@ -93,7 +93,7 @@ def main():
                     train_f.create_dataset(key, data=data[start_index:split_index])
                     test_f.create_dataset(key, data=data[split_index:end_index])
 
-    # Only prune training data
+    # Perform full suite of preprocessing on training data
     if PERFORM_PRUNING:
         PRUNE_SPEED = bool(int(os.getenv("SPEED_PRUNING")))
         PRUNE_STEERING = bool(int(os.getenv("STEERING_PRUNING")))
@@ -148,7 +148,49 @@ def main():
             shutil.move(f, TRAINING_DIR)
         os.rmdir(PRUNED_DATASET_PATH)
 
+        # --- Prune testing data but DO NOT discard for low steering angles ---
+        PRUNED_TESTSET_PATH = TEST_DIR + "/Pruned-Recordings"
+        os.mkdir(PRUNED_TESTSET_PATH)
+        
+        testing_files = glob.glob(f"{TEST_DIR}/*.hdf5")
+        for i, file in enumerate(testing_files):
+            p = Path(file)
+            print(f"Pruning test file: {p.name}. Batch size is {WINDOW_SIZE}. [{i + 1}/{len(testing_files)}]")
+            discarded_batches = []
+            with h5py.File(file, "r") as f:
+                speeds = np.array(f["vehicle_speed"])
+                steering_angles = np.array(f["steering_wheel_angle"])
+                file_len = len(speeds)
+                for j in range(0, len(speeds), WINDOW_SIZE):
+                    if PRUNE_SPEED:
+                        if np.median(speeds[j:j+WINDOW_SIZE]) < SPEED_THRESHOLD:
+                            discarded_batches.append(j)
+                            continue
+                    # Skipping low steering angle check for testing data.
+                    if any(angle > MAX_STEERING or angle < MIN_STEERING for angle in steering_angles[j:j+WINDOW_SIZE]):
+                        discarded_batches.append(j)
+                        continue
+                
+                indices_to_remove = []
+                for idx in discarded_batches:
+                    indices_to_remove.extend(range(idx, idx + WINDOW_SIZE))
+                indices_to_keep = np.setdiff1d(np.arange(file_len), indices_to_remove)
+                renamed_file = f"{PRUNED_TESTSET_PATH}/{p.stem}_pruned.hdf5"
+                with h5py.File(renamed_file, "w") as new_f:
+                    for dset_name in f.keys():
+                        if len(f[dset_name]) != file_len:
+                            continue
+                        full_data = np.array(f[dset_name])
+                        new_f.create_dataset(dset_name, data=full_data[indices_to_keep])
+                
+                print(f"Discarded {len(discarded_batches)} batches, totalling {len(indices_to_remove)} frames.")
+                print(f"{len(indices_to_keep)} frames remain, with average speed {np.average(speeds[indices_to_keep])} and average absolute steering {np.average(np.absolute(steering_angles[indices_to_keep]))}") 
 
+        for f in glob.glob(f"{TEST_DIR}/*.hdf5"):
+            os.remove(f)
+        for f in glob.glob(f"{PRUNED_TESTSET_PATH}/*.hdf5"):
+            shutil.move(f, TEST_DIR)
+        os.rmdir(PRUNED_TESTSET_PATH)
 
 if __name__ == "__main__":
     main()
