@@ -58,50 +58,53 @@ def search_csv(file_path, target):
         for row in reader:
             if row[0] == target:
                 return int(row[1]), int(row[2]), bool(int(row[3]))
-    return None, None
+    return None, None, None
 
 def main():
     try:
         os.mkdir(TRAINING_DIR)
     except FileExistsError:
-        for f in glob.glob(TRAINING_DIR + "/*"):
-            if os.path.isdir(f):
-                shutil.rmtree(f)
-            else:
-                os.remove(f)
+        pass
 
     try:
         os.mkdir(TEST_DIR)
     except FileExistsError:
-        for f in glob.glob(TEST_DIR + "/*"):
-            os.remove(f)
+        pass
 
     data_files = sorted(glob.glob(f"{DATA_DIR}/*.hdf5"))
     for i, df in enumerate(data_files):
-        p = Path(df)
-        # The issue is, there are unused bits of the file at the beginning and end, that are not chopped off with the previous preprocessing.
-        # Thankfully, where we should chop is shown in the relevant CSV file, and we can calculate the indices they correspond to.
-        start_s, end_s, is_flipped = search_csv(CSV_FILE, p.name.replace(f"_bin{BINSIZE_MS}ms", ''))
-        start_index, end_index = start_s * BINS_PER_S, end_s *BINS_PER_S
-        with h5py.File(df, "r") as f:
-            print(f"Splitting {p.name} into training and testing subsections. [{i + 1}/{len(data_files)}]")
-            print(f"Start(s) - End(s): {start_s} - {end_s} | Start (index) - End (index) {start_index} - {end_index}")
-            train_file_name = f"{TRAINING_DIR}/{p.stem}_train.hdf5"
-            test_file_name = f"{TEST_DIR}/{p.stem}_test.hdf5"
-            with h5py.File(train_file_name, "w") as train_f, h5py.File(test_file_name, "w") as test_f:
-                for key, data in f.items():
-                    data_len = end_index - start_index
-                    split_index = math.ceil(data_len * TRAINING_SPLIT)
-                    # if the CSV indicates the video should be flipped, flip video streams upside down.
-                    if is_flipped and (key.lower().startswith("aps_frame") or key.lower().startswith("dvs_frame")):
-                        print(f"File {p.name} is flipped, flipping video data key: {key.lower()}")
-                        # for processing speed, it would be faster to flip the "unflipped" videos, since it doesnt matter which way the video is flipped.
-                        # But for viewing purposes, it is better to flip the "flipped" videos.
-                        data = np.flipud(data)
+        try:
+            p = Path(df)
+            # The issue is, there are unused bits of the file at the beginning and end, that are not chopped off with the previous preprocessing.
+            # Thankfully, where we should chop is shown in the relevant CSV file, and we can calculate the indices they correspond to.
+            start_s, end_s, is_flipped = search_csv(CSV_FILE, p.name.replace(f"_bin{BINSIZE_MS}ms", ''))
+            start_index, end_index = start_s * BINS_PER_S, end_s *BINS_PER_S
+            with h5py.File(df, "r") as f:
+                train_file_name = f"{TRAINING_DIR}/{p.stem}_train.hdf5"
+                test_file_name = f"{TEST_DIR}/{p.stem}_test.hdf5"
 
-                    train_f.create_dataset(key, data=data[start_index:split_index])
-                    test_f.create_dataset(key, data=data[split_index:end_index])
+                if glob.glob(train_file_name) or glob.glob(test_file_name):
+                    print(f"Skipping {p.name} the file has already been preprocessed. If you'd like to do it again, please delete the file.")
+                    continue
 
+                print(f"Splitting {p.name} into training and testing subsections. [{i + 1}/{len(data_files)}]")
+                print(f"Start(s) - End(s): {start_s} - {end_s} | Start (index) - End (index) {start_index} - {end_index}")
+                with h5py.File(train_file_name, "w") as train_f, h5py.File(test_file_name, "w") as test_f:
+                    for key, data in f.items():
+                        data_len = end_index - start_index
+                        split_index = math.ceil(data_len * TRAINING_SPLIT)
+                        # if the CSV indicates the video should be flipped, flip video streams upside down.
+                        if is_flipped and (key.lower().startswith("aps_frame") or key.lower().startswith("dvs_frame")):
+                            print(f"File {p.name} is flipped, flipping video data key: {key.lower()}")
+                            # for processing speed, it would be faster to flip the "unflipped" videos, since it doesnt matter which way the video is flipped.
+                            # But for viewing purposes, it is better to flip the "flipped" videos.
+                            data = np.flipud(data)
+
+                        train_f.create_dataset(key, data=data[start_index:split_index])
+                        test_f.create_dataset(key, data=data[split_index:end_index])
+            print(f"Done preprocessing {p.name}")
+        except OSError as e:
+            print(f"Skipping {df}, cannot open file. Reason: {e}.\n This most likely means the file is corrupted!")
     # Perform full suite of preprocessing on training data
     if PERFORM_PRUNING:
         PRUNE_SPEED = bool(int(os.getenv("SPEED_PRUNING")))

@@ -14,6 +14,7 @@ class ResnetRNN(nn.Module):
                            batch_first=True)
 
         self.fc = nn.Linear(hidden_dim, 1)
+        self.tanh = nn.Tanh()
 
     # override
     def forward(self, x):
@@ -25,4 +26,5 @@ class ResnetRNN(nn.Module):
 
         rnn_out, _ = self.rnn(features)
         out = self.fc(rnn_out)
+        out = self.tanh(out)
         return out
