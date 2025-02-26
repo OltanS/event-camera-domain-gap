@@ -43,6 +43,7 @@ DATA_DIR = os.getenv("DATA_DIR")
 MODEL_SAVE_DIR = os.getenv("MODEL_SAVE_DIR")
 TRAINING_DIR = f"{DATA_DIR}/Training"
 TEST_DIR = f"{DATA_DIR}/Test"
+IMAGES_DIR = os.getenv("IMAGES_DIR")
 
 # --- Training parameters ---
 MODEL_TYPE = os.getenv("MODEL_TYPE")
@@ -80,8 +81,7 @@ def setup_transforms():
     if AUGMENT_DATA:
         augmentations = [
             transforms.RandomApply([transforms.RandomResizedCrop(224, ratio=(0.75, 1.25), scale=(0.64, 1.0))], p=0.5),
-            transforms.RandomApply([transforms.RandomRotation(degrees=25)], p=0.5),
-            transforms.RandomApply([transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0))], p=0.5),
+            transforms.RandomApply([transforms.RandomRotation(degrees=5)], p=0.5),
             transforms.RandomApply([transforms.GaussianNoise(mean=0, sigma=0.02, clip=True)], p=0.5)
         ]
 
@@ -139,6 +139,42 @@ def clean_models(directory):
     for model_file in glob.glob(directory + "/*.pth"):
         os.remove(model_file)
 
+
+def animate_loader(train_loader, save_path=f"{IMAGES_DIR}/animation.gif"):
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+    from IPython.display import display
+    frames = []  # for storing the generated images
+    # Create 2 subplots (one for each channel)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    axes[0].set_title("APS Images")
+    axes[1].set_title("DVS Images")
+    
+    print(f"Saving an animation of the first 10 batches slowed down 20x to {save_path}")
+    # Loop over the first 100 batches
+    for i, (combined_images, steering_angles) in enumerate(train_loader):
+        if i >= 10:
+            break
+        b, t, c, w, h = combined_images.shape
+        combined_images = combined_images.view(-1, c, w, h)
+        # Extract the images for each channel
+        aps_images = combined_images[:, 0, :, :].cpu().numpy()  # converting tensor to numpy if needed
+        dvs_images = combined_images[:, 1, :, :].cpu().numpy()
+        steering_angles = steering_angles.flatten().cpu().numpy()
+        # Display images on the subplots (set animated=True for animation)
+        for j in range(dvs_images.shape[0]):
+            im0 = axes[0].imshow(dvs_images[j], cmap="gray", vmin=0, vmax=1.0, animated=True, origin="lower")
+            im1 = axes[1].imshow(aps_images[j], cmap="gray", vmin=0, vmax=1.0, animated=True, origin="lower")                
+            # Add steering angle as text on the image
+            angle_text = axes[0].text(0.5, -0.1, f"Steering Angle: {180 * steering_angles[j]:.2f}", 
+                                    size=12, ha="center", transform=axes[0].transAxes, color="red")
+            # Append the artists as the current frame.
+            frames.append([im0, im1, angle_text])
+    ani = animation.ArtistAnimation(fig, frames, interval=200, blit=True, repeat_delay=1000)
+            
+    # Save the animation if a save_path is provided.
+    if save_path is not None:
+        ani.save(save_path, dpi=80, writer='pillow')
 
 def save_model(directory, model, optimizer, epoch, loss, best_test_loss, *, clean_old=False):
     '''
@@ -223,6 +259,9 @@ def main():
         starting_epoch, best_test_loss = warm_start(model, optimizer)
     
     train_loader, test_loader = prepare_dataloader()
+    
+    animate_loader(train_loader)
+
     print(f"[GPU{GLOBAL_RANK}]Train loader has {len(train_loader)} batches of length {WINDOW_SIZE}, equalling {len(train_loader) * BATCH_SIZE * WINDOW_SIZE} frames.")
     print(f"[GPU{GLOBAL_RANK}]Test loader has {len(test_loader)} batches of length {WINDOW_SIZE}, equalling {len(test_loader) * BATCH_SIZE * WINDOW_SIZE} frames.")
     scaler = torch.amp.GradScaler("cuda")

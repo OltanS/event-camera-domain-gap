@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 import glob
 import h5py
 
+import random
+
 class LazyDataset(Dataset):
     '''
     adapted from https://stackoverflow.com/questions/74375033/pytorch-dataloader-for-multiple-files-with-sliding-window
@@ -83,7 +85,16 @@ class LazyDataset(Dataset):
                 if self.transform:
                     # If the data represents a sequence (e.g. multiple frames), apply transform per frame.
                     if data.ndim == 4:  # expecting shape (num_frames, height, width, channels)
-                        frames = [self.transform(frame) for frame in data]
+                        
+                        # make all frames in sequence have same transforms
+                        frames = []
+                        state = torch.get_rng_state()
+                        for frame in data:
+                            torch.set_rng_state(state)
+                            frames.append(self.transform(frame))
+                        
+                        # reset RNG state
+                        torch.manual_seed(torch.seed())              
                         data = torch.stack(frames, dim=0)
                     else:
                         data = self.transform(data)

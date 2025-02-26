@@ -21,7 +21,6 @@ TODO_FILES=("$IN_DIR"/*.hdf5)
 # Activate the virtual environment
 source ${VENV_DIR}/bin/activate
 
-# Here on down should not require modification
 for TODO_FILE in "${TODO_FILES[@]}"
 do
     echo "### Working on $TODO_FILE ####"
