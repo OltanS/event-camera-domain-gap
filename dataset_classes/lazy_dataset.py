@@ -5,25 +5,28 @@ from torch.utils.data import Dataset
 import glob
 import h5py
 
-import random
+from src.setup_config_variables import setup_config_variables
+
+config = setup_config_variables()
 
 class LazyDataset(Dataset):
     '''
     adapted from https://stackoverflow.com/questions/74375033/pytorch-dataloader-for-multiple-files-with-sliding-window
     '''
-    def __init__(self, data_folder, *, transform=None, target_transform=None, window_size=1, use_aps=True, use_dvs=True, DVS_FRAME_NAME, APS_FRAME_NAME, DTYPE):
-        if not (use_aps or use_dvs):
-            raise ValueError("At least one of use_aps or use_dvs must be True.")
+    def __init__(self, data_folder, *, transform=None, target_transform=None):
         self.transform = transform
         self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
         self.target_transform = target_transform
-        self.window_size = window_size
-        self.use_aps = use_aps
-        self.use_dvs = use_dvs
+        self.window_size = config["WINDOW_SIZE"]
+        self.use_aps = config["USE_APS"]
+        self.use_dvs = config["USE_DVS"]
+        if not (self.use_aps or self.use_dvs):
+            raise ValueError("At least one of use_aps or use_dvs must be True.")
+        
         self.apsdvs_min = 0
-        self.DVS_FRAME_NAME = DVS_FRAME_NAME
-        self.APS_FRAME_NAME = APS_FRAME_NAME
-        self.DTYPE = DTYPE
+        self.APS_FRAME_NAME = config["APS_FRAME_NAME"]
+        self.DVS_FRAME_NAME = config["DVS_FRAME_NAME"]
+        self.DTYPE = config["DTYPE"]
 
         self.total_windows, self.dataset_dict = self.create_dataset_dict()
 
