@@ -100,10 +100,10 @@ def main():
                                 tform = lambda d : d
                                 if is_flipped and key in relevant_keys[0:2]:
                                     print(f"Recording was mounted upside down, rotating {key} 180 degs")
-                                    np.rot90(data, k=2, axes=(1, 2))
+                                    data = np.rot90(data, k=2, axes=(1, 2))
                                 
                                 # steering wheel angle is mirrored for DDD20 for some reason, we need to negate it
-                                elif key == relevant_keys[3]:
+                                elif is_flipped and key == relevant_keys[3]:
                                     print("Fixing rotated steering angle convention for DDD20")
                                     tform = lambda d: -d
                                 

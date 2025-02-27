@@ -52,6 +52,7 @@ WARM_START= bool(int(os.getenv("WARM_START")))
 CLEAN_OLD_MODELS = bool(int(os.getenv("CLEAN_OLD_MODELS")))
 if WARM_START and CLEAN_OLD_MODELS: raise Exception("Can't have WARM_START and CLEAN_OLD_MODELS at the same time!")
 TRAINING_SPLIT = float(os.getenv("TRAINING_SPLIT"))
+PORTION_OF_DATASET = float(os.getenv("PORTION_OF_DATASET"))
 EPOCHS = int(os.getenv("EPOCHS"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE"))
 WINDOW_SIZE = int(os.getenv("WINDOW_SIZE"))
@@ -202,9 +203,15 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode):
 
         # report every 25% progress
         total_batches = len(loader)
+        training_batches = PORTION_OF_DATASET * total_batches
+        print(f"GPU{GLOBAL_RANK}]Beging training Epoch [{epoch + 1}/{EPOCHS}], training on {training_batches} out of available {total_batches}, as set by PORTION_OF_DATASET in config.")
+        
         progress_thresholds = {int(total_batches * 0.25), int(total_batches * 0.50), int(total_batches * 0.75)}
         with context:
             for i, (combined_images, steering_angle) in enumerate(loader):
+                if i > training_batches:
+                    break
+
                 if MODEL_TYPE == "Resnet":
                     b, t, c, w, h = combined_images.shape
                     combined_images = combined_images.view(b * t, c, w, h)

@@ -46,8 +46,8 @@ do
     
     # Export data
     echo "### Exporting... ###"
-    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}"
-    python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} --tstart ${TSTART} --tstop ${TSTOP}
+    echo "Running command: python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH}" #  --tstart ${TSTART} --tstop ${TSTOP}
+    python2 ${DDD20_UTILS_DIR}/export.py ${TODO_FILE} --binsize ${BINSIZE_S} --export_aps ${EXPORT_APS} --export_dvs ${EXPORT_DVS} --out_file ${OUT_FILE_FULLPATH} # --tstart ${TSTART} --tstop ${TSTOP}
 
     # Prepare and resize
     # This works inplace
