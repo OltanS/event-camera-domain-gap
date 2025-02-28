@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-
 
 # multinode training
 from torch.utils.data.distributed import DistributedSampler
@@ -16,12 +12,26 @@ import contextlib
 import os
 import glob
 import gc
+import time
+import datetime
 
 from dataset_classes.lazy_dataset import LazyDataset
 from src.setup_model import setup_model
 from src.setup_config_variables import setup_config_variables
 from src.animate_loader import animate_loader
 from src.setup_transforms import setup_transforms
+
+def log_loss(epoch, train_loss, test_loss, log_dir):
+    log_file = f"{log_dir}/loss_log.csv"
+    with open(log_file, "a") as f:
+        f.write(f"{epoch},{train_loss},{test_loss}\n")
+
+def get_timestamp():
+    return datetime.datetime.now().strftime("[%H:%M:%S]")
+
+def report_progress(global_rank, message, epoch=None, total_epochs=None):
+    epoch_str = f"[E:{epoch + 1}/{total_epochs}]" if epoch is not None and total_epochs is not None else ""
+    print(f"{get_timestamp()}[GPU{global_rank}]{epoch_str} {message}")
 
 def ddp_setup(local_rank):
     torch.cuda.set_device(local_rank)
@@ -39,19 +49,18 @@ def prepare_dataloader(training_dir, test_dir, batch_size, augment_data):
     return train_loader, test_loader
 
 def warm_start(model, optimizer, local_rank, last_model_dir):
-        """
-        Load the last model and optimizer state from the last saved model, returns starting epoch and best loss
-        """
-        loc = f"cuda:{local_rank}"
-        last_model_file = glob.glob(f"{last_model_dir}/*")[-1]
-        load_dict = torch.load(last_model_file, map_location=loc)
-        model.load_state_dict(load_dict["model_state_dict"])
-        optimizer.load_state_dict(load_dict["optimizer_state_dict"])
-        epoch = load_dict["epoch"]
-        best_test_loss = load_dict["best_test_loss"]
-        print(f"Resuming training from epoch {epoch} with best test loss {best_test_loss} from file: {last_model_file}")
-        return epoch + 1, best_test_loss
-
+    """
+    Load the last model and optimizer state from the last saved model, returns starting epoch and best loss
+    """
+    loc = f"cuda:{local_rank}"
+    last_model_file = glob.glob(f"{last_model_dir}/*")[-1]
+    load_dict = torch.load(last_model_file, map_location=loc)
+    model.load_state_dict(load_dict["model_state_dict"])
+    optimizer.load_state_dict(load_dict["optimizer_state_dict"])
+    epoch = load_dict["epoch"]
+    best_test_loss = load_dict["best_test_loss"]
+    print(f"Last completed epoch was {epoch + 1}, with best test loss {best_test_loss} from file: {last_model_file}")
+    return epoch + 1, best_test_loss
 
 def clean_models(directory):
     '''
@@ -79,7 +88,6 @@ def save_model(directory, model, optimizer, epoch, loss, best_test_loss, *, clea
     loss_steering_angle_rmse = 180 * (loss ** 0.5)
     torch.save(state, f"{directory}/e{epoch + 1}_L{loss_steering_angle_rmse:.2f}.pth")
 
-
 def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_dataset, local_rank, global_rank, model_type):
         epoch_loss = 0
         context = torch.no_grad() if mode == "TEST" else contextlib.nullcontext()
@@ -87,23 +95,18 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         # report every 25% progress
         total_batches = len(loader)
         training_batches = portion_of_dataset * total_batches
-        
-        
-        progress_thresholds = {int(total_batches * 0.25), int(total_batches * 0.50), int(total_batches * 0.75)}
+        progress_thresholds = {int(training_batches * 0.25), int(training_batches * 0.50), int(training_batches * 0.75)}
         with context:
             for i, (combined_images, steering_angle) in enumerate(loader):
-                if i > training_batches:
+                if i >= training_batches:
                     break
-
                 if model_type == "Resnet":
                     b, t, c, w, h = combined_images.shape
                     combined_images = combined_images.view(b * t, c, w, h)
                 elif model_type != "ResnetRNN":
                     combined_images = combined_images.permute(0, 2, 1, 3, 4)
-
                 if mode != "TEST":
                     optimizer.zero_grad()
-
                 combined_images = combined_images.to(local_rank)
                 steering_angle = steering_angle.to(local_rank)
                 with torch.autocast(device_type="cuda", dtype=torch.float16):
@@ -113,17 +116,15 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                     else:
                         last_angles = steering_angle[:, -1]
                         loss = criterion(outputs, last_angles)
-
                 if mode != "TEST":
                     scaler.scale(loss).backward()
                     scaler.step(optimizer)
                     scaler.update()
                 epoch_loss += loss.item()
-                
                 # Report progress if we have hit one of the thresholds
                 if (i + 1) in progress_thresholds:
-                    progress = round(100 * (i + 1) / total_batches)
-                    print(f"[GPU{global_rank}]{mode}, Epoch progress: {progress}% completed.")
+                    progress = round(100 * (i + 1) / total_batches) 
+                    report_progress(global_rank, f"{mode} Epoch progress: {progress}% completed.")
                 
                 del combined_images, steering_angle, outputs
                 torch.cuda.empty_cache()
@@ -138,43 +139,57 @@ def main():
     ddp_setup(config["LOCAL_RANK"])
     model = setup_model(config["MODEL_TYPE"], config["MODEL_DIMS"], config["PRETRAINED"], config["LOCAL_RANK"])
     model = DDP(model, device_ids=[config["LOCAL_RANK"]])
+    train_loader, test_loader = prepare_dataloader(config["TRAINING_DIR"], config["TEST_DIR"], config["BATCH_SIZE"], config["AUGMENT_DATA"])
+    
+    report_progress(config["GLOBAL_RANK"], f"Train loader has {len(train_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(train_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
+    report_progress(config["GLOBAL_RANK"], f"Test loader has {len(test_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(test_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config["LEARNING_RATE"], weight_decay=config["WEIGHT_DECAY"])
+    def lr_lambda(epoch):
+        warmup_epochs = config["EPOCHS"] // 10
+        T_max = config["EPOCHS"] - warmup_epochs
+        # linear warmup
+        if epoch < warmup_epochs:
+            return float(epoch) / float(max(1, warmup_epochs))
+        # cosine annealing
+        else:
+            progress = float(epoch - warmup_epochs) / float(max(1, T_max))
+            return 0.5 * (1.0 + np.cos(np.pi * progress))
+        
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
     starting_epoch = 0
     best_test_loss = np.inf
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["LEARNING_RATE"], weight_decay=config["WEIGHT_DECAY"])
-
-    if config["CLEAN_OLD_MODELS"]:
-        clean_models(config["MODEL_SAVE_DIR"])
-
     last_model_dir = f"{config['MODEL_SAVE_DIR']}/last"
     best_model_dir = f"{config['MODEL_SAVE_DIR']}/best"
-
     if config["WARM_START"]:
         starting_epoch, best_test_loss = warm_start(model, optimizer, config["LOCAL_RANK"], last_model_dir)
-    
-    train_loader, test_loader = prepare_dataloader(training_dir=config["TRAINING_DIR"], test_dir=config["TEST_DIR"], batch_size=config["BATCH_SIZE"], augment_data=config["AUGMENT_DATA"])
-    
-    animate_loader(train_loader, save_path=config["IMAGES_DIR"])
+    # only animate at the beginning of training,no need to re-do it on warm start
+    else:
+        animate_loader(train_loader, save_path=config["IMAGES_DIR"], global_rank=config["GLOBAL_RANK"])
 
-    print(f"[GPU{config['GLOBAL_RANK']}]Train loader has {len(train_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(train_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
-    print(f"[GPU{config['GLOBAL_RANK']}]Test loader has {len(test_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(test_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
     scaler = torch.amp.GradScaler("cuda")
-    
+    report_progress(config["GLOBAL_RANK"], f"Training on {100 * config['PORTION_OF_DATASET']}% of the dataset, as set by PORTION_OF_DATASET in config.")
     for epoch in range(starting_epoch, config["EPOCHS"]):
         train_loader.sampler.set_epoch(epoch)
         test_loader.sampler.set_epoch(epoch)
-
-        print(f"GPU{config['GLOBAL_RANK']}]Beging training Epoch [{epoch + 1}/{config['EPOCHS']}], training on {100 * config['PORTION_OF_DATASET']}% of the dataset, as set by PORTION_OF_DATASET in config.")
-        epoch_train_loss = run_epoch(model=model, loader=train_loader, optimizer=optimizer, scaler=scaler, criterion=criterion, mode="TRAIN", portion_of_dataset=config["PORTION_OF_DATASET"], local_rank=config["LOCAL_RANK"], global_rank=config["GLOBAL_RANK"], model_type=config["MODEL_TYPE"])
-        epoch_test_loss = run_epoch(model=model, loader=test_loader, optimizer=optimizer, scaler=scaler, criterion=criterion, mode="TEST", portion_of_dataset=config["PORTION_OF_DATASET"], local_rank=config["LOCAL_RANK"], global_rank=config["GLOBAL_RANK"], model_type=config["MODEL_TYPE"])
-        print(f"[GPU{config['GLOBAL_RANK']}]Epoch [{epoch + 1}/{config['EPOCHS']}], Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f} Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}")
+        report_progress(config["GLOBAL_RANK"], "Beginning Epoch.", epoch=epoch, total_epochs=config["EPOCHS"])
         
-        save_model(last_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
-        if (epoch_test_loss < best_test_loss):
-            best_test_loss = epoch_test_loss
-            save_model(best_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
+        epoch_train_loss = run_epoch(model, train_loader, optimizer, scaler, criterion, "TRAIN", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
+        epoch_test_loss = run_epoch(model, test_loader, optimizer, scaler, criterion, "TEST", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
+        scheduler.step()
+        
+        report_progress(config["GLOBAL_RANK"], f"Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
+        report_progress(config["GLOBAL_RANK"], f"Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
+        
+        log_loss(epoch, epoch_train_loss, epoch_test_loss, config["MODEL_SAVE_DIR"])
 
+        if config["GLOBAL_RANK"] == 0:
+            save_model(last_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
+            if (epoch_test_loss < best_test_loss):
+                best_test_loss = epoch_test_loss
+                save_model(best_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
     destroy_process_group()
 
 if __name__ == "__main__":

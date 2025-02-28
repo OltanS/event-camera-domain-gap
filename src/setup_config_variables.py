@@ -6,14 +6,14 @@ import numpy as np
 def setup_config_variables():
     '''
     Loads the project configuration from config.env from root. Assumes this function is called from root.
-    returns a dictionary of config variables.
-    Has the following derived variables in addition to the ones outlined in config.env:
-    config["MODEL_DIMS"] = config["USE_DVS"] + config["USE_APS"]
-    config["DTYPE"] = np.float16 if config["PRECISION"] == 16 else np.float32
+    returns a dictionary of config variables.  
+    Has the following derived variables in addition to the ones outlined in config.env:  
+    config["MODEL_DIMS"] = config["USE_DVS"] + config["USE_APS"]  
+    config["DTYPE"] = np.float16 if config["PRECISION"] == 16 else np.float32  
 
     from torchrun:
-    config["LOCAL_RANK"] = int(os.getenv("LOCAL_RANK", 0))
-    config["GLOBAL_RANK"] = int(os.getenv("RANK", 0))
+    config["LOCAL_RANK"] = int(os.getenv("LOCAL_RANK", 0))  
+    config["GLOBAL_RANK"] = int(os.getenv("RANK", 0))  
     '''
 
     load_dotenv("config.env")
@@ -29,10 +29,6 @@ def setup_config_variables():
         raise Exception("MODEL_DIMS must be non-zero")
     
     config["WARM_START"] = bool(int(os.getenv("WARM_START")))
-    config["CLEAN_OLD_MODELS"] = bool(int(os.getenv("CLEAN_OLD_MODELS")))
-    if config["WARM_START"] and config["CLEAN_OLD_MODELS"]:
-        raise Exception("Can't have WARM_START and CLEAN_OLD_MODELS at the same time!")
-    
     config["EPOCHS"] = int(os.getenv("EPOCHS"))
     config["BATCH_SIZE"] = int(os.getenv("BATCH_SIZE"))
     config["LEARNING_RATE"] = float(os.getenv("LEARNING_RATE"))

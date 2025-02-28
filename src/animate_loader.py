@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 import os
 
-def animate_loader(data_loader, save_path, num_batches=10, time_per_frame=200):
-    save_path += "/animation.gif"
+def animate_loader(data_loader, save_path, global_rank, num_batches=10, time_per_frame=200):
+    save_path += f"/gpu{global_rank}_animation.gif"
 
     frames = []  # for storing the generated images
     # Create 2 subplots (one for each channel)
