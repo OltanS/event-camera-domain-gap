@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.models.video import mvit_v2_s
 
 class ModifiedMViTv2S(nn.Module):
-    def __init__(self, in_channels=1, out_features=1, pretrained=False):
+    def __init__(self, in_channels=1, out_features=1):
         """
         Args:
             in_channels (int): Number of input channels (e.g., 1 for APS or DVS, 2 for combined sensor data).
@@ -12,7 +12,7 @@ class ModifiedMViTv2S(nn.Module):
         """
         super(ModifiedMViTv2S, self).__init__()
         # Load the base mvit_v2_s model
-        self.model = mvit_v2_s(pretrained=pretrained, num_classes=out_features, temporal_size=8)
+        self.model = mvit_v2_s(weights=None, num_classes=out_features, temporal_size=8)
         
         # Modify the patch embedding projection layer to accept the desired number of input channels.
         # The default conv is stored in self.model.patch_embed.proj.

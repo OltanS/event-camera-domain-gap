@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.models.video import swin3d_b
 
 class ModifiedSwin3dB(nn.Module):
-    def __init__(self, in_channels=2, out_features=1, pretrained=False):
+    def __init__(self, in_channels=2, out_features=1):
         """
         Args:
             in_channels (int): Number of input channels (e.g., 1 for APS or DVS, 2 for combined sensor data).
@@ -12,7 +12,7 @@ class ModifiedSwin3dB(nn.Module):
         """
         super(ModifiedSwin3dB, self).__init__()
         # Load the base swin3d_b model from torchvision
-        self.model = swin3d_b(pretrained=pretrained, num_classes=out_features)
+        self.model = swin3d_b(weights=None, num_classes=out_features)
         
         # Modify the patch embedding proj layer to accept the desired number of input channels.
         # The default conv is stored in self.model.patch_embed.proj.

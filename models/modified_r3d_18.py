@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.models.video import r3d_18
 
 class ModifiedR3D18(nn.Module):
-    def __init__(self, in_channels=2, out_features=1, pretrained=False):
+    def __init__(self, in_channels=2, out_features=1):
         """
         Args:
             in_channels (int): Number of input channels (e.g., 1 for APS or DVS, 2 for combined sensor data).
@@ -12,7 +12,7 @@ class ModifiedR3D18(nn.Module):
         """
         super(ModifiedR3D18, self).__init__()
         # Load the base model
-        self.model = r3d_18(pretrained=pretrained, num_classes=out_features)
+        self.model = r3d_18(weights=None, num_classes=out_features)
         
         # Modify the first conv layer to support custom in_channels.
         # The original conv is located in self.model.stem[0].

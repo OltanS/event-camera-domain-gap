@@ -13,7 +13,9 @@ def setup_config_variables():
 
     from torchrun:
     config["LOCAL_RANK"] = int(os.getenv("LOCAL_RANK", 0))  
-    config["GLOBAL_RANK"] = int(os.getenv("RANK", 0))  
+    config["GLOBAL_RANK"] = int(os.getenv("RANK", 0))
+
+    returns: dict of config variables
     '''
 
     load_dotenv("config.env")
@@ -21,7 +23,6 @@ def setup_config_variables():
     config = {}
     # --- Training parameters ---
     config["MODEL_TYPE"] = os.getenv("MODEL_TYPE")
-    config["PRETRAINED"] = bool(int(os.getenv("PRETRAINED")))
     config["USE_DVS"] = int(os.getenv("USE_DVS"))
     config["USE_APS"] = int(os.getenv("USE_APS"))
     config["MODEL_DIMS"] = config["USE_DVS"] + config["USE_APS"]

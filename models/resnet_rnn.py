@@ -2,9 +2,9 @@ import torch.nn as nn
 import torchvision.models as models
 
 class ResnetRNN(nn.Module):
-    def __init__(self, hidden_dim=128, num_layers=1, in_channels=2, pretrained=False):
+    def __init__(self, hidden_dim=128, num_layers=1, in_channels=2):
         super().__init__()
-        base_model = models.resnet34(pretrained=pretrained)
+        base_model = models.resnet34(weights=None)
         base_model.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False)
         self.feature_extractor = nn.Sequential(*list(base_model.children())[:-1])
         
@@ -14,7 +14,6 @@ class ResnetRNN(nn.Module):
                            batch_first=True)
 
         self.fc = nn.Linear(hidden_dim, 1)
-        self.tanh = nn.Tanh()
 
     # override
     def forward(self, x):
@@ -26,5 +25,4 @@ class ResnetRNN(nn.Module):
 
         rnn_out, _ = self.rnn(features)
         out = self.fc(rnn_out)
-        out = self.tanh(out)
         return out

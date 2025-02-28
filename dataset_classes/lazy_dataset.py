@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 import glob
 import h5py
 
-from src.setup_config_variables import setup_config_variables
+from src.config_utils import setup_config_variables
 
 config = setup_config_variables()
 
@@ -14,6 +14,23 @@ class LazyDataset(Dataset):
     adapted from https://stackoverflow.com/questions/74375033/pytorch-dataloader-for-multiple-files-with-sliding-window
     '''
     def __init__(self, data_folder, *, transform=None, target_transform=None):
+        '''
+        Initialize the dataset by creating a list of all files in the data_folder.
+        args:
+            data_folder: str, path to the folder containing the data files.
+            transform: callable, optional, a function/transform that takes in a numpy array and returns a transformed version.
+            target_transform: callable, optional, a function/transform that takes in the target and transforms it.
+
+            Some attributes are inferred from the config file, to keep the signature of the __init__ method clean.
+            These are:
+            - self.window_size: int, the number of frames in a window.
+            - self.use_aps: bool, whether to use the APS stream.
+            - self.use_dvs: bool, whether to use the DVS stream.
+            - self.APS_FRAME_NAME: str, the name of the APS frame in the HDF5 file.
+            - self.DVS_FRAME_NAME: str, the name of the DVS frame in the HDF5 file.
+            - self.DTYPE: np.dtype, the data type of the target.
+        '''
+        super().__init__()
         self.transform = transform
         self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
         self.target_transform = target_transform

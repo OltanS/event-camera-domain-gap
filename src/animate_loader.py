@@ -3,6 +3,15 @@ from matplotlib import animation
 import os
 
 def animate_loader(data_loader, save_path, global_rank, num_batches=10, time_per_frame=200):
+    '''
+    Animates the first num_batches of the data_loader.
+    args:
+        data_loader (torch.utils.data.DataLoader): The data loader to animate
+        save_path (str): The path to save the animation as animation.gif
+        global_rank (int): The rank of the current process
+        num_batches (int): The number of batches to animate
+        time_per_frame (int): The time in ms per frame
+    '''
     save_path += f"/gpu{global_rank}_animation.gif"
 
     frames = []  # for storing the generated images
