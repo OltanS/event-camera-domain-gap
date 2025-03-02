@@ -1,8 +1,9 @@
 import gc
 
+from tqdm import tqdm
+
 import torch
 import contextlib
-from src.logging_utils import report_progress
 
 def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_dataset, local_rank, global_rank, model_type):
         '''
@@ -27,9 +28,9 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         # report every 25% progress
         total_batches = len(loader)
         training_batches = portion_of_dataset * total_batches
-        progress_thresholds = {int(training_batches * 0.25), int(training_batches * 0.50), int(training_batches * 0.75)}
         with context:
-            for i, (combined_images, steering_angle) in enumerate(loader):
+            pbar = tqdm(loader, total=training_batches, desc=f"[GPU{global_rank}] {mode}", disable=local_rank != 0)
+            for i, (combined_images, steering_angle) in enumerate(pbar):
                 if i >= training_batches:
                     break
                 if model_type == "Resnet":
@@ -52,11 +53,11 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                     scaler.scale(loss).backward()
                     scaler.step(optimizer)
                     scaler.update()
+                
                 epoch_loss += loss.item()
-                # Report progress if we have hit one of the thresholds
-                if (i + 1) in progress_thresholds:
-                    progress = round(100 * (i + 1) / total_batches) 
-                    report_progress(global_rank, f"{mode} Epoch progress: {progress}% completed.")
+
+                # Show current loss in the progress bar
+                pbar.set_postfix(loss=f"{loss.item():.4f}")
                 
                 del combined_images, steering_angle, outputs
                 torch.cuda.empty_cache()

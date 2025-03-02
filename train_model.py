@@ -49,19 +49,31 @@ def main():
     for epoch in range(starting_epoch, config["EPOCHS"]):
         train_loader.sampler.set_epoch(epoch)
         test_loader.sampler.set_epoch(epoch)
-        report_progress(config["GLOBAL_RANK"], "Beginning Epoch.", epoch=epoch, total_epochs=config["EPOCHS"])
+        
+        if config["LOCAL_RANK"] == 0:
+            report_progress(config["GLOBAL_RANK"], "Beginning Epoch", epoch=epoch, total_epochs=config["EPOCHS"])
         
         epoch_train_loss = run_epoch(model, train_loader, optimizer, scaler, criterion, "TRAIN", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
         epoch_test_loss = run_epoch(model, test_loader, optimizer, scaler, criterion, "TEST", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
         scheduler.step()
-        
-        report_progress(config["GLOBAL_RANK"], f"Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
-        report_progress(config["GLOBAL_RANK"], f"Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
+
+        # sync losses across all devices, so the reports are accurate
+        epoch_train_loss = torch.tensor([epoch_train_loss], device=f"cuda:{config['LOCAL_RANK']}")
+        epoch_test_loss = torch.tensor([epoch_test_loss], device=f"cuda:{config['LOCAL_RANK']}")
+        torch.distributed.all_reduce(epoch_train_loss, op=torch.distributed.ReduceOp.SUM)
+        torch.distributed.all_reduce(epoch_test_loss, op=torch.distributed.ReduceOp.SUM)
+        epoch_train_loss = epoch_train_loss.item() / torch.distributed.get_world_size()
+        epoch_test_loss = epoch_test_loss.item() / torch.distributed.get_world_size()
+
+        if config["LOCAL_RANK"] == 0:
+            report_progress(config["GLOBAL_RANK"], f"Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
+            report_progress(config["GLOBAL_RANK"], f"Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
         
         if config["GLOBAL_RANK"] == 0:
             log_loss(epoch, epoch_train_loss, epoch_test_loss, config["MODEL_SAVE_DIR"])
             save_model(last_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
             if (epoch_test_loss < best_test_loss):
+                report_progress(config["GLOBAL_RANK"], f"New best model found, prev. best test loss {180* (best_test_loss ** 0.5)}", epoch=epoch, total_epochs=config["EPOCHS"])
                 best_test_loss = epoch_test_loss
                 save_model(best_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
     ddp_cleanup()

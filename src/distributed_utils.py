@@ -1,6 +1,4 @@
 import torch
-from torch.distributed import init_process_group, destroy_process_group
-from torch.nn.parallel import DistributedDataParallel
 
 def ddp_setup(local_rank):
     '''
@@ -9,17 +7,27 @@ def ddp_setup(local_rank):
         local_rank (int): The rank of the current process
     '''
     torch.cuda.set_device(local_rank)
-    init_process_group(backend="nccl")
+    torch.distributed.init_process_group(backend="nccl")
 
 def ddp_cleanup():
     '''Destroy distributed training environment'''
-    destroy_process_group()
+    torch.distributed.destroy_process_group()
+
+def training_optimisations(model):
+    '''
+    Set some optimisations for training
+    args:
+        model (torch.nn.Module): The model to optimise
+    '''
+    torch.backends.cudnn.benchmark = True
+    torch.compile(model, mode="max-autotune")
 
 def ddp_model(model, local_rank):
     '''
-    Wrap model for distributed training
+    Wrap model for distributed training, and perform some optimisations
     args:
         model (torch.nn.Module): The model to wrap
         local_rank (int): The rank of the current process
     '''
+    training_optimisations(model)
     return torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
