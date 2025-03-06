@@ -9,6 +9,8 @@ from models.modified_r3d_18 import ModifiedR3D18
 from models.modified_swin3d_b import ModifiedSwin3dB
 from models.modified_mvit_v2_s import ModifiedMViTv2S
 from models.simple_model import SimpleModel
+from models.r3d_18_parallel import R3DParallel
+from models.mvit_v2_s_parallel import MViTv2SParallel
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -38,6 +40,14 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
 
     elif MODEL_TYPE == "MViTV2":
         model = ModifiedMViTv2S(in_channels=MODEL_DIMS, out_features=1).to(device)
+
+    # only makes sense for 2 channels, so no in_channels parameter
+    elif MODEL_TYPE == "R3DParallel":
+        model = R3DParallel(out_features=1).to(device)
+
+    # only makes sense for 2 channels, so no in_channels parameter
+    elif MODEL_TYPE == "MviTV2Parallel":
+        model = MViTv2SParallel(out_features=1).to(device)
 
     elif MODEL_TYPE == "simple":
         model = SimpleModel().to(device)

@@ -25,7 +25,6 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         epoch_loss = 0
         context = torch.no_grad() if mode == "TEST" else contextlib.nullcontext()
 
-        # report every 25% progress
         total_batches = len(loader)
         training_batches = portion_of_dataset * total_batches
         with context:
@@ -34,21 +33,24 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                 if i >= training_batches:
                     break
                 if model_type == "Resnet":
-                    b, t, c, w, h = combined_images.shape
-                    combined_images = combined_images.view(b * t, c, w, h)
+                    b, t, c, h, w = combined_images.shape
+                    combined_images = combined_images.view(b * t, c, h, w)
                 elif model_type != "ResnetRNN":
+                    # permute the data to (batch, channels, seq_len, width, height)
                     combined_images = combined_images.permute(0, 2, 1, 3, 4)
                 if mode != "TEST":
                     optimizer.zero_grad()
                 combined_images = combined_images.to(local_rank)
                 steering_angle = steering_angle.to(local_rank)
-                with torch.autocast(device_type="cuda", dtype=torch.float16):
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                     outputs = model(combined_images).squeeze(1)
                     if model_type == "Resnet":
-                        loss = criterion(outputs, steering_angle.view(-1))
+                        target_angles = steering_angle.view(-1)
                     else:
-                        last_angles = steering_angle[:, -1]
-                        loss = criterion(outputs, last_angles)
+                        target_angles = steering_angle[:, -1]
+                
+                    loss = criterion(outputs, target_angles)
+                    
                 if mode != "TEST":
                     scaler.scale(loss).backward()
                     scaler.step(optimizer)

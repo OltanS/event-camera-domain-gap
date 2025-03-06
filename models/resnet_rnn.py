@@ -24,5 +24,5 @@ class ResnetRNN(nn.Module):
         features = features.view(b, t, -1)
 
         rnn_out, _ = self.rnn(features)
-        out = self.fc(rnn_out)
+        out = self.fc(rnn_out[:, -1, :])
         return out
