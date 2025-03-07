@@ -6,7 +6,7 @@ import torch.nn as nn
 from torchvision import models
 from models.resnet_rnn import ResnetRNN
 from models.modified_r3d_18 import ModifiedR3D18
-from models.modified_swin3d_b import ModifiedSwin3dB
+from models.modified_swin3d_s import ModifiedSwin3DS
 from models.modified_mvit_v2_s import ModifiedMViTv2S
 from models.simple_model import SimpleModel
 from models.r3d_18_parallel import R3DParallel
@@ -35,8 +35,8 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "R3D":
         model = ModifiedR3D18(in_channels=MODEL_DIMS, out_features=1).to(device)
     
-    elif MODEL_TYPE == "Swin3DB":
-        model = ModifiedSwin3dB(in_channels=MODEL_DIMS, out_features=1).to(device)
+    elif MODEL_TYPE == "Swin":
+        model = ModifiedSwin3DS(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "MViTV2":
         model = ModifiedMViTv2S(in_channels=MODEL_DIMS, out_features=1).to(device)

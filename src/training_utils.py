@@ -5,6 +5,30 @@ from tqdm import tqdm
 import torch
 import contextlib
 
+def inspect_gradients(model):
+    '''
+    Utility for monitoring exploding gradients
+    '''
+    print("\n=== Parameter Gradient Analysis ===")
+    
+    # Track the largest gradients
+    param_dict = {}
+    
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            grad_norm = param.grad.detach().norm(2).item()
+            param_dict[name] = grad_norm
+            
+    # Sort by gradient norm (highest first)
+    sorted_grads = sorted(param_dict.items(), key=lambda x: x[1], reverse=True)
+    
+    print("\nTop 100 largest gradients:")
+    for name, norm in sorted_grads[:100]:
+        param_size = param_dict = ' × '.join(str(s) for s in model.get_parameter(name).shape)
+        print(f"{name:40} | shape: {param_size:15} | grad norm: {norm:.2f}")
+    
+    return sorted_grads
+
 def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_dataset, local_rank, global_rank, model_type):
         '''
         Run a single epoch of training or testing.
@@ -53,6 +77,10 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                     
                 if mode != "TEST":
                     scaler.scale(loss).backward()
+                    # grad clipping for transformer models
+                    if model_type in ["Swin", "MViTV2"]:
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.5)
+                    #inspect_gradients(model)
                     scaler.step(optimizer)
                     scaler.update()
                 
