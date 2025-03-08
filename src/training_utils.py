@@ -79,8 +79,8 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                     scaler.scale(loss).backward()
                     # grad clipping for transformer models
                     if model_type in ["Swin", "MViTV2"]:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.5)
-                    #inspect_gradients(model)
+                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+                    # inspect_gradients(model)
                     scaler.step(optimizer)
                     scaler.update()
                 
