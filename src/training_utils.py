@@ -56,30 +56,22 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
             for i, (combined_images, steering_angle) in enumerate(pbar):
                 if i >= training_batches:
                     break
-                if model_type == "Resnet":
-                    b, t, c, h, w = combined_images.shape
-                    combined_images = combined_images.view(b * t, c, h, w)
-                elif model_type != "ResnetRNN":
-                    # permute the data to (batch, channels, seq_len, width, height)
-                    combined_images = combined_images.permute(0, 2, 1, 3, 4)
                 if mode != "TEST":
                     optimizer.zero_grad()
+                
+                #b, t, c, h, w = combined_images.shape
                 combined_images = combined_images.to(local_rank)
                 steering_angle = steering_angle.to(local_rank)
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                     outputs = model(combined_images).squeeze(1)
-                    if model_type == "Resnet":
-                        target_angles = steering_angle.view(-1)
-                    else:
-                        target_angles = steering_angle[:, -1]
-                
+                    # only consider the output for the last time slot
+                    # take the rest of the input as "context"
+                    target_angles = steering_angle[:, -1]
                     loss = criterion(outputs, target_angles)
                     
                 if mode != "TEST":
                     scaler.scale(loss).backward()
-                    # grad clipping for transformer models
-                    if model_type in ["Swin", "MViTV2"]:
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)
                     # inspect_gradients(model)
                     scaler.step(optimizer)
                     scaler.update()

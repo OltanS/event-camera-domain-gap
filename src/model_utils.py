@@ -11,6 +11,8 @@ from models.modified_mvit_v2_s import ModifiedMViTv2S
 from models.simple_model import SimpleModel
 from models.r3d_18_parallel import R3DParallel
 from models.mvit_v2_s_parallel import MViTv2SParallel
+from models.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
+from models.modified_convnext import ModifiedConvNeXtTiny
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -48,6 +50,12 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     # only makes sense for 2 channels, so no in_channels parameter
     elif MODEL_TYPE == "MviTV2Parallel":
         model = MViTv2SParallel(out_features=1).to(device)
+
+    elif MODEL_TYPE == "ConvNeXt":
+        model = ModifiedConvNeXtTiny(in_channels=MODEL_DIMS, out_features=1).to(device)
+
+    elif MODEL_TYPE == "ConvNeXtSpatiotemporal":
+        model = ConvNeXtTinyTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "simple":
         model = SimpleModel().to(device)
