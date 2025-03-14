@@ -4,6 +4,7 @@ import os
 import torch
 import torch.nn as nn
 from torchvision import models
+from models.modified_resnet import ModifiedResnet
 from models.resnet_rnn import ResnetRNN
 from models.modified_r3d_18 import ModifiedR3D18
 from models.modified_swin3d_s import ModifiedSwin3DS
@@ -25,11 +26,7 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
         model: nn.Module, the model to use
     '''
     if MODEL_TYPE == "Resnet":
-        model = models.resnet34()
-        model.conv1 = nn.Conv2d(in_channels=MODEL_DIMS, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False)
-        in_features = model.fc.in_features
-        model.fc = nn.Linear(in_features, 1)
-        model.to(device)
+        model = ModifiedResnet(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "ResnetRNN":
         model = ResnetRNN(hidden_dim=128, num_layers=1, in_channels=MODEL_DIMS).to(device)
@@ -48,7 +45,7 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
         model = R3DParallel(out_features=1).to(device)
 
     # only makes sense for 2 channels, so no in_channels parameter
-    elif MODEL_TYPE == "MviTV2Parallel":
+    elif MODEL_TYPE == "MViTV2Parallel":
         model = MViTv2SParallel(out_features=1).to(device)
 
     elif MODEL_TYPE == "ConvNeXt":

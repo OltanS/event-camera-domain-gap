@@ -41,7 +41,7 @@ def main():
     if config["WARM_START"]:
         starting_epoch, best_test_loss = warm_start(model, optimizer, config["LOCAL_RANK"], last_model_dir)
     # only animate at the beginning of training,no need to re-do it on warm start
-    else:
+    elif config["ANIMATE_LOADER"]:
         animate_loader(train_loader, save_path=config["IMAGES_DIR"], global_rank=config["GLOBAL_RANK"])
 
     scaler = torch.amp.GradScaler("cuda")

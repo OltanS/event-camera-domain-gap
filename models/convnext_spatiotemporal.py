@@ -29,7 +29,7 @@ class BasicBlockCBAM(CNBlock):
 class ConvNeXtTinyCBAM(nn.Module):
     def __init__(self, in_channels=2, out_features=1):
         super().__init__()
-        self.model = convnext_tiny(block=BasicBlockCBAM, num_classes=out_features)
+        self.model = convnext_tiny(block=BasicBlockCBAM, num_classes=out_features, layer_scale=1e-1)
         tiny_first_input_channels = 96
         self.model.features[0] = Conv2dNormActivation(
             in_channels=in_channels,
@@ -93,9 +93,7 @@ class ConvNeXtTinyTemporalCBAM(nn.Module):
         self.regressor = convnext_cbam_regressor.model.classifier
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, t, h, w = x.shape
-        # put together batch and time dimensions for feature extraction
-        x = x.permute(0, 2, 1, 3, 4).contiguous()
+        b, t, c, h, w = x.shape
         x = x.view(b * t, c, h, w)
         x = self.feature_extractor(x) # b * t, fetures, h_, w_
         # put back batch and time dimensions
@@ -131,10 +129,10 @@ def _test_convnext_tiny_cbam():
     print("ConvNeXtTinyCBAM test passed")
 
 def _test_convnext_tiny_temporal_cbam():
-    b, c, t = 16, 2, 8
+    b, t, c = 16, 8, 2
     features = 1
     model = ConvNeXtTinyTemporalCBAM(in_channels=c, out_features=features)
-    x = torch.randn(b, c, t, 224, 224)
+    x = torch.randn(b, t, c, 224, 224)
     out = model(x)
     expected_shape = (b, features)
     assert out.shape == expected_shape, f"Shape mismatch: {out.shape} != {expected_shape}"

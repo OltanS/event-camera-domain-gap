@@ -21,6 +21,9 @@ def setup_config_variables():
     load_dotenv("config.env")
     
     config = {}
+    # --- Data Visualisation Options ---
+    config["ANIMATE_LOADER"] = bool(int(os.getenv("ANIMATE_LOADER")))
+    
     # --- Training parameters ---
     config["MODEL_TYPE"] = os.getenv("MODEL_TYPE")
     config["USE_DVS"] = int(os.getenv("USE_DVS"))
@@ -75,6 +78,7 @@ def setup_config_variables():
     config["LOCAL_RANK"] = int(os.getenv("LOCAL_RANK", 0))
     config["GLOBAL_RANK"] = int(os.getenv("RANK", 0))
     
+
 
     for key, value in config.items():
         if value is None or (isinstance(value, str) and not value.strip()):

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from functools import partial
 
 # tiny corresponds to resnet50 equivalent
-from torchvision.models.convnext import CNBlock, convnext_tiny, LayerNorm2d
+from torchvision.models.convnext import convnext_tiny, LayerNorm2d
 from torchvision.ops.misc import Conv2dNormActivation
 
 # CBAM is put at the end of the basic block after second conv layer, before residual connection
@@ -15,7 +15,7 @@ from torchvision.ops.misc import Conv2dNormActivation
 class ModifiedConvNeXtTiny(nn.Module):
     def __init__(self, in_channels=2, out_features=1):
         super().__init__()
-        self.model = convnext_tiny(num_classes=out_features)
+        self.model = convnext_tiny(num_classes=out_features, layer_scale=1e-1)
         tiny_first_input_channels = 96
         self.model.features[0] = Conv2dNormActivation(
             in_channels=in_channels,

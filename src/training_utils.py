@@ -46,6 +46,7 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         returns:
             float, the average loss for the epoch
         '''
+        transformer_models = ["Swin", "MViTV2", "MViTV2Parallel"]
         epoch_loss = 0
         context = torch.no_grad() if mode == "TEST" else contextlib.nullcontext()
 
@@ -63,6 +64,10 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                 combined_images = combined_images.to(local_rank)
                 steering_angle = steering_angle.to(local_rank)
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+                    # for transformer models, we need to reshuffle the dimensions to their expected
+                    # to b, c, t, h, w from the original b, t, c, h ,w
+                    if model_type in transformer_models:
+                        combined_images = combined_images.permute(0, 2, 1, 3, 4)
                     outputs = model(combined_images).squeeze(1)
                     # only consider the output for the last time slot
                     # take the rest of the input as "context"
@@ -87,4 +92,8 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
 
             # Average training loss for the epoch
             epoch_loss /= len(loader)
+
+            # report gradients at the end of the epoch to show they're healthy
+            inspect_gradients(model)
+
             return epoch_loss
