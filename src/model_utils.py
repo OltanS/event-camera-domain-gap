@@ -8,12 +8,10 @@ from models.modified_resnet import ModifiedResnet
 from models.resnet_rnn import ResnetRNN
 from models.modified_r3d_18 import ModifiedR3D18
 from models.modified_swin3d_s import ModifiedSwin3DS
-from models.modified_mvit_v2_s import ModifiedMViTv2S
-from models.simple_model import SimpleModel
 from models.r3d_18_parallel import R3DParallel
-from models.mvit_v2_s_parallel import MViTv2SParallel
-from models.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
 from models.modified_convnext import ModifiedConvNeXtTiny
+from models.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
+from models.simple_model import SimpleModel
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -37,16 +35,9 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "Swin":
         model = ModifiedSwin3DS(in_channels=MODEL_DIMS, out_features=1).to(device)
 
-    elif MODEL_TYPE == "MViTV2":
-        model = ModifiedMViTv2S(in_channels=MODEL_DIMS, out_features=1).to(device)
-
     # only makes sense for 2 channels, so no in_channels parameter
     elif MODEL_TYPE == "R3DParallel":
         model = R3DParallel(out_features=1).to(device)
-
-    # only makes sense for 2 channels, so no in_channels parameter
-    elif MODEL_TYPE == "MViTV2Parallel":
-        model = MViTv2SParallel(out_features=1).to(device)
 
     elif MODEL_TYPE == "ConvNeXt":
         model = ModifiedConvNeXtTiny(in_channels=MODEL_DIMS, out_features=1).to(device)
@@ -54,7 +45,7 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "ConvNeXtSpatiotemporal":
         model = ConvNeXtTinyTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
-    elif MODEL_TYPE == "simple":
+    elif MODEL_TYPE == "Simple":
         model = SimpleModel().to(device)
     else:
         raise Exception(f"There is no defined model for {MODEL_TYPE}!")

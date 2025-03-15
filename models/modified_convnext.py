@@ -5,12 +5,22 @@ import torch.nn.functional as F
 from functools import partial
 
 # tiny corresponds to resnet50 equivalent
-from torchvision.models.convnext import convnext_tiny, LayerNorm2d
+from torchvision.models.convnext import convnext_tiny
 from torchvision.ops.misc import Conv2dNormActivation
 
 # CBAM is put at the end of the basic block after second conv layer, before residual connection
 # We can add CBAM to the basic block by subclassing BasicBlock and overriding
 # the forward method to include CBAM
+
+class LayerNorm2d(nn.LayerNorm):
+    '''
+    taken from convnext, modified with contiguous to work with DDP
+    '''
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.permute(0, 2, 3, 1).contiguous()
+        x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+        x = x.permute(0, 3, 1, 2).contiguous()
+        return x
 
 class ModifiedConvNeXtTiny(nn.Module):
     def __init__(self, in_channels=2, out_features=1):

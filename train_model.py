@@ -7,7 +7,7 @@ from src.config_utils import setup_config_variables
 from src.animate_loader import animate_loader
 from src.data_utils import prepare_dataloader
 from src.distributed_utils import ddp_setup, ddp_cleanup, ddp_model
-from src.logging_utils import log_loss, report_progress
+from src.logging_utils import log_loss, report_progress, setup_tensorboard, close_tensorboard
 from src.training_utils import run_epoch
 
 def main():
@@ -15,7 +15,9 @@ def main():
     ddp_setup(config["LOCAL_RANK"])
     model = setup_model(config["MODEL_TYPE"], config["MODEL_DIMS"], config["LOCAL_RANK"])
     model = ddp_model(model, config["LOCAL_RANK"])
-    
+
+    writer = setup_tensorboard(config["MODEL_SAVE_DIR"], config["GLOBAL_RANK"])
+
     train_loader, test_loader = prepare_dataloader(config["TRAINING_DIR"], config["TEST_DIR"], config["BATCH_SIZE"], config["AUGMENT_DATA"])
     report_progress(config["GLOBAL_RANK"], f"Train loader has {len(train_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(train_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
     report_progress(config["GLOBAL_RANK"], f"Test loader has {len(test_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(test_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
@@ -53,8 +55,12 @@ def main():
         if config["LOCAL_RANK"] == 0:
             report_progress(config["GLOBAL_RANK"], "Beginning Epoch", epoch=epoch, total_epochs=config["EPOCHS"])
         
-        epoch_train_loss = run_epoch(model, train_loader, optimizer, scaler, criterion, "TRAIN", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
-        epoch_test_loss = run_epoch(model, test_loader, optimizer, scaler, criterion, "TEST", config["PORTION_OF_DATASET"], config["LOCAL_RANK"], config["GLOBAL_RANK"], config["MODEL_TYPE"])
+        epoch_train_loss = run_epoch(model, train_loader, optimizer, scaler, criterion,
+                                    "TRAIN", config["PORTION_OF_DATASET"], config["LOCAL_RANK"],
+                                    config["GLOBAL_RANK"], config["MODEL_TYPE"], writer=writer, epoch=epoch)
+        epoch_test_loss = run_epoch(model, test_loader, optimizer, scaler, criterion,
+                                    "TEST", config["PORTION_OF_DATASET"], config["LOCAL_RANK"],
+                                    config["GLOBAL_RANK"], config["MODEL_TYPE"])
         scheduler.step()
 
         # sync losses across all devices, so the reports are accurate
@@ -68,15 +74,18 @@ def main():
         if config["LOCAL_RANK"] == 0:
             report_progress(config["GLOBAL_RANK"], f"Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
             report_progress(config["GLOBAL_RANK"], f"Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
+            if (epoch_test_loss < best_test_loss):
+                report_progress(config["GLOBAL_RANK"], f"New best model found, prev. best test loss {180* (best_test_loss ** 0.5)}", epoch=epoch, total_epochs=config["EPOCHS"])
         
         if config["GLOBAL_RANK"] == 0:
             log_loss(epoch, epoch_train_loss, epoch_test_loss, config["MODEL_SAVE_DIR"])
             save_model(last_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
             if (epoch_test_loss < best_test_loss):
-                report_progress(config["GLOBAL_RANK"], f"New best model found, prev. best test loss {180* (best_test_loss ** 0.5)}", epoch=epoch, total_epochs=config["EPOCHS"])
                 best_test_loss = epoch_test_loss
                 save_model(best_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
+    
     ddp_cleanup()
-
+    close_tensorboard()
+    
 if __name__ == "__main__":
     main()

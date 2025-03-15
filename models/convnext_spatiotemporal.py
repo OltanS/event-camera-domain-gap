@@ -62,20 +62,17 @@ class TemporalAttention(nn.Module):
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, t, c, h, w = x.shape
-
+        
+        x_no_time = x.view(b * t, c, h, w)
         # Spatial pool to get frame features
-        frame_features = F.adaptive_avg_pool2d(
-            x.view(b * t, c, h, w),
-            output_size=1
-        ).view(b, t, c)
-
+        frame_features = F.adaptive_avg_pool2d(x_no_time, output_size=1).view(b, t, c)
         # Get attention weights
         attention_weights = self.mlp(frame_features)
         attention_weights = F.sigmoid(attention_weights)
 
+        attention_weights = attention_weights.view(b, t, c, 1, 1)
         # Apply attention weights to input
-        x = x * attention_weights.unsqueeze(-1).unsqueeze(-1)
-        
+        x = x * attention_weights
         return x
 
 
@@ -95,7 +92,7 @@ class ConvNeXtTinyTemporalCBAM(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, t, c, h, w = x.shape
         x = x.view(b * t, c, h, w)
-        x = self.feature_extractor(x) # b * t, fetures, h_, w_
+        x = self.feature_extractor(x) # b * t, fetures, h_, w_)
         # put back batch and time dimensions
         _, features, h_, w_ = x.shape
         x = x.view(b, t, features, h_, w_)
