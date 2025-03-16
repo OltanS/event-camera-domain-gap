@@ -2,8 +2,6 @@ import glob
 import os
 
 import torch
-import torch.nn as nn
-from torchvision import models
 from models.modified_resnet import ModifiedResnet
 from models.resnet_rnn import ResnetRNN
 from models.modified_r3d_18 import ModifiedR3D18
@@ -11,7 +9,9 @@ from models.modified_swin3d_s import ModifiedSwin3DS
 from models.r3d_18_parallel import R3DParallel
 from models.modified_convnext import ModifiedConvNeXtTiny
 from models.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
+from models.resnet_spatiotemporal import ResnetTemporalCBAM, ResnetCBAM
 from models.simple_model import SimpleModel
+
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -27,7 +27,7 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
         model = ModifiedResnet(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "ResnetRNN":
-        model = ResnetRNN(hidden_dim=128, num_layers=1, in_channels=MODEL_DIMS).to(device)
+        model = ResnetRNN(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "R3D":
         model = ModifiedR3D18(in_channels=MODEL_DIMS, out_features=1).to(device)
@@ -42,8 +42,14 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "ConvNeXt":
         model = ModifiedConvNeXtTiny(in_channels=MODEL_DIMS, out_features=1).to(device)
 
-    elif MODEL_TYPE == "ConvNeXtSpatiotemporal":
+    elif MODEL_TYPE == "ConvNeXtTemporalCBAM":
         model = ConvNeXtTinyTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
+
+    elif MODEL_TYPE == "ResnetCBAM":
+        model = ResnetCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
+
+    elif MODEL_TYPE == "ResnetTemporalCBAM":
+        model = ResnetTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "Simple":
         model = SimpleModel().to(device)

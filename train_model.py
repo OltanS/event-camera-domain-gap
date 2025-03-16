@@ -71,21 +71,28 @@ def main():
         epoch_train_loss = epoch_train_loss.item() / torch.distributed.get_world_size()
         epoch_test_loss = epoch_test_loss.item() / torch.distributed.get_world_size()
 
+        is_new_best = epoch_test_loss < best_test_loss
         if config["LOCAL_RANK"] == 0:
             report_progress(config["GLOBAL_RANK"], f"Train Loss (RMSE in degs of steering): {180 * (epoch_train_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
             report_progress(config["GLOBAL_RANK"], f"Test Loss (RMSE in degs of steering): {180 * (epoch_test_loss ** 0.5): .4f}", epoch=epoch, total_epochs=config["EPOCHS"])
-            if (epoch_test_loss < best_test_loss):
-                report_progress(config["GLOBAL_RANK"], f"New best model found, prev. best test loss {180* (best_test_loss ** 0.5)}", epoch=epoch, total_epochs=config["EPOCHS"])
-        
+            if is_new_best:
+                report_progress(config["GLOBAL_RANK"], f"New best model found, prev. best test loss {180 * (best_test_loss ** 0.5)}", epoch=epoch, total_epochs=config["EPOCHS"])
+
+        # Global rank 0 handles logging, saving, and updating best_test_loss
         if config["GLOBAL_RANK"] == 0:
             log_loss(epoch, epoch_train_loss, epoch_test_loss, config["MODEL_SAVE_DIR"])
             save_model(last_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
-            if (epoch_test_loss < best_test_loss):
+            if is_new_best:
                 best_test_loss = epoch_test_loss
                 save_model(best_model_dir, model, optimizer, epoch, epoch_test_loss, best_test_loss, clean_old=True)
+
+        # Synchronize best_test_loss across all processes
+        best_test_loss_tensor = torch.tensor([best_test_loss], device=model.device)
+        torch.distributed.broadcast(best_test_loss_tensor, src=0)
+        best_test_loss = best_test_loss_tensor.item()
     
     ddp_cleanup()
-    close_tensorboard()
+    close_tensorboard(writer)
     
 if __name__ == "__main__":
     main()
