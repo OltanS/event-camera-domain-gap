@@ -53,7 +53,7 @@ class CrossModalFusion(nn.Module):
 
         return enchanced_aps, enchanced_dvs
 
-class R3DParallel(nn.Module):
+class R3dParallel(nn.Module):
     '''
     Two R3D models run in parallel with late fusion for regression
     one model tackles the APS data and the other tackles the DVS data
@@ -63,7 +63,7 @@ class R3DParallel(nn.Module):
         Args:
             out_features (int): Number of regression outputs.
         """
-        super(R3DParallel, self).__init__()
+        super(R3dParallel, self).__init__()
         aps_base_model = r3d_18(weights=None)
         dvs_base_model = r3d_18(weights=None)
         

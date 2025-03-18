@@ -2,16 +2,16 @@ import glob
 import os
 
 import torch
-from models.modified_resnet import ModifiedResnet
-from models.resnet_rnn import ResnetRNN
-from models.modified_r3d_18 import ModifiedR3D18
-from models.modified_swin3d_s import ModifiedSwin3DS
-from models.r3d_18_parallel import R3DParallel
-from models.modified_convnext import ModifiedConvNeXtTiny
-from models.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
-from models.resnet_spatiotemporal import ResnetTemporalCBAM, ResnetCBAM
 from models.simple_model import SimpleModel
-
+from models.resnet_variants.modified_resnet import ModifiedResnet
+from models.resnet_variants.resnet_rnn import ResnetRNN
+from models.resnet_variants.resnet_spatiotemporal import ResnetTemporalCBAM, ResnetCBAM
+from models.r3d_variants.modified_r3d_18 import ModifiedR3d18
+from models.r3d_variants.modified_r2plus1d import ModifiedR2Plus1d18
+from models.r3d_variants.r3d_18_parallel import R3dParallel
+from models.convnext_variants.modified_convnext import ModifiedConvNeXtTiny
+from models.convnext_variants.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
+from models.video_transformers.modified_swin3d_s import ModifiedSwin3DS
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -23,21 +23,31 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     returns:
         model: nn.Module, the model to use
     '''
-    if MODEL_TYPE == "Resnet":
+
+    if MODEL_TYPE == "Simple":
+        model = SimpleModel().to(device)
+    
+    elif MODEL_TYPE == "Resnet":
         model = ModifiedResnet(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "ResnetRNN":
         model = ResnetRNN(in_channels=MODEL_DIMS, out_features=1).to(device)
 
-    elif MODEL_TYPE == "R3D":
-        model = ModifiedR3D18(in_channels=MODEL_DIMS, out_features=1).to(device)
-    
-    elif MODEL_TYPE == "Swin":
-        model = ModifiedSwin3DS(in_channels=MODEL_DIMS, out_features=1).to(device)
+    elif MODEL_TYPE == "ResnetCBAM":
+        model = ResnetCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
+    elif MODEL_TYPE == "ResnetTemporalCBAM":
+        model = ResnetTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
+    
+    elif MODEL_TYPE == "R3d":
+        model = ModifiedR3d18(in_channels=MODEL_DIMS, out_features=1).to(device)
+    
+    elif MODEL_TYPE == "R2Plus1d":
+        model = ModifiedR2Plus1d18(in_channels=MODEL_DIMS, out_features=1).to(device)
+    
     # only makes sense for 2 channels, so no in_channels parameter
-    elif MODEL_TYPE == "R3DParallel":
-        model = R3DParallel(out_features=1).to(device)
+    elif MODEL_TYPE == "R3dParallel":
+        model = R3dParallel(out_features=1).to(device)
 
     elif MODEL_TYPE == "ConvNeXt":
         model = ModifiedConvNeXtTiny(in_channels=MODEL_DIMS, out_features=1).to(device)
@@ -45,14 +55,9 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "ConvNeXtTemporalCBAM":
         model = ConvNeXtTinyTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
-    elif MODEL_TYPE == "ResnetCBAM":
-        model = ResnetCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
-
-    elif MODEL_TYPE == "ResnetTemporalCBAM":
-        model = ResnetTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
-
-    elif MODEL_TYPE == "Simple":
-        model = SimpleModel().to(device)
+    elif MODEL_TYPE == "Swin":
+        model = ModifiedSwin3DS(in_channels=MODEL_DIMS, out_features=1).to(device)
+    
     else:
         raise Exception(f"There is no defined model for {MODEL_TYPE}!")
     

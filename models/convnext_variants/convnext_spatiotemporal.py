@@ -4,8 +4,8 @@ import torch.nn.functional as F
 
 from functools import partial
 
-from models.cbam import CBAM
-from models.temporal_attention import TemporalAttention
+from models.attention_modules.cbam import CBAM
+from models.attention_modules.temporal_attention import TemporalAttention
 
 # tiny corresponds to resnet50 equivalent
 from torchvision.models.convnext import CNBlock, convnext_tiny, LayerNorm2d
