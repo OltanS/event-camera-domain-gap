@@ -169,7 +169,7 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         returns:
             float, the average loss for the epoch
         '''
-        bcthw_models = ["Simple", "Swin", "MViTV2", "MViTV2Parallel","R3d", "R3dParallel", "R2Plus1d"]
+        bcthw_models = ["Simple", "Swin", "MViTV2", "MViTV2Parallel","R3d", "R3dParallel", "R2Plus1d", "R2Plus1dCBAM"]
         epoch_loss = 0
         context = torch.no_grad() if mode == "TEST" else contextlib.nullcontext()
 

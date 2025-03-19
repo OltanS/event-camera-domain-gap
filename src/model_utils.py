@@ -8,6 +8,7 @@ from models.resnet_variants.resnet_rnn import ResnetRNN
 from models.resnet_variants.resnet_spatiotemporal import ResnetTemporalCBAM, ResnetCBAM
 from models.r3d_variants.modified_r3d_18 import ModifiedR3d18
 from models.r3d_variants.modified_r2plus1d import ModifiedR2Plus1d18
+from models.r3d_variants.r2plus1d_cbam import R2Plus1dCBAM
 from models.r3d_variants.r3d_18_parallel import R3dParallel
 from models.convnext_variants.modified_convnext import ModifiedConvNeXtTiny
 from models.convnext_variants.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
@@ -45,6 +46,9 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     elif MODEL_TYPE == "R2Plus1d":
         model = ModifiedR2Plus1d18(in_channels=MODEL_DIMS, out_features=1).to(device)
     
+    elif MODEL_TYPE == "R2Plus1dCBAM":
+        model = R2Plus1dCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
+
     # only makes sense for 2 channels, so no in_channels parameter
     elif MODEL_TYPE == "R3dParallel":
         model = R3dParallel(out_features=1).to(device)
