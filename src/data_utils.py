@@ -27,8 +27,8 @@ def setup_transforms(augment_data: bool):
         transforms_v2.ToDtype(torch.float32, scale=False),
         transforms_v2.Normalize(
             # aps mean, dvs mean
-            mean=[0.4989, 0.4631],
-            std=[0.3508, 0.1299]
+            mean=[0.4827, 0.3458],
+            std=[0.4672, 0.1243]
         )
     ]
 

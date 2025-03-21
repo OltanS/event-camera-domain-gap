@@ -12,7 +12,7 @@ from models.r3d_variants.r2plus1d_cbam import R2Plus1dCBAM
 from models.r3d_variants.r3d_18_parallel import R3dParallel
 from models.convnext_variants.modified_convnext import ModifiedConvNeXtTiny
 from models.convnext_variants.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
-from models.video_transformers.modified_swin3d_s import ModifiedSwin3DS
+from models.video_transformers.modified_swin3d_t import ModifiedSwin3Dt
 
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
@@ -60,7 +60,7 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
         model = ConvNeXtTinyTemporalCBAM(in_channels=MODEL_DIMS, out_features=1).to(device)
 
     elif MODEL_TYPE == "Swin":
-        model = ModifiedSwin3DS(in_channels=MODEL_DIMS, out_features=1).to(device)
+        model = ModifiedSwin3Dt(in_channels=MODEL_DIMS, out_features=1).to(device)
     
     else:
         raise Exception(f"There is no defined model for {MODEL_TYPE}!")

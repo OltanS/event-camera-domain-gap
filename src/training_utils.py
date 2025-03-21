@@ -199,8 +199,9 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                     
                 if mode != "TEST":
                     scaler.scale(loss).backward()
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5e5)
-                    # Log gradient stats every 1000 batches
+                    scaler.unscale_(optimizer)
+                    
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                     # inspect_gradients(model)
                     if writer is not None and global_rank ==0 and i % 20 == 0:
                         grad_stats = _track_gradient_stats(model)
