@@ -75,7 +75,7 @@ def prepare_dataloader(training_dir, test_dir, batch_size, augment_data):
     test_dataset = LazyDataset(test_dir, transform=test_transform, target_transform=test_target_transform)
 
     # load the data, can implement batching etc. here
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=True, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(train_dataset))
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=True, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(test_dataset))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(train_dataset))
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(test_dataset))
 
     return train_loader, test_loader

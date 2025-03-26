@@ -24,7 +24,7 @@ def _inspect_gradients(model):
     
     print("\nTop 100 largest gradients:")
     for name, norm in sorted_grads[:100]:
-        param_size = param_dict = ' × '.join(str(s) for s in model.get_parameter(name).shape)
+        param_size = param_dict = ' x '.join(str(s) for s in model.get_parameter(name).shape)
         print(f"{name:40} | shape: {param_size:15} | grad norm: {norm:.2f}")
     
     return sorted_grads
