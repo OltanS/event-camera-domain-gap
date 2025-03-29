@@ -9,7 +9,4 @@ class ModifiedResnet(nn.Module):
         self.model.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        b, t, c, h, w = x.shape
-        # get only last one, for testing
-        last_timeslots = x[:, -1, :, :, :]
-        return self.model(last_timeslots)
+        return self.model(x)

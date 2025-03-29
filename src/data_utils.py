@@ -17,12 +17,12 @@ def setup_transforms(augment_data: bool):
         target_transform (Compose): The transform to apply to the target
     '''
     inv_apsdvs_max = 1 / 255
-    def normalise_dvsaps(data):
+    def scale_dvsaps(data):
         # shorthand for (data - self.apsdvs_min) / (self.apsdvs_max - self.apsdvs_min) since we know the min is 0
         return data * inv_apsdvs_max
 
     transform_list = [
-        lambda x: normalise_dvsaps(x),
+        lambda x: scale_dvsaps(x),
         transforms_v2.ToImage(),
         transforms_v2.ToDtype(torch.float32, scale=False),
         transforms_v2.Normalize(
@@ -46,11 +46,11 @@ def setup_transforms(augment_data: bool):
     # normalise the steering values from -180 to 180 to -1 to 1
     # Precompute normalization coefficients
     steering_slope = 1 / 180  # (output_max - output_min)/(input_max - input_min) = (1-(-1))/(180-(-180))
-    def normalise_steering(data):
+    def scale_steering(data):
         return data * steering_slope
 
     target_transform = transforms_v2.Compose([
-        lambda x: normalise_steering(x)
+        lambda x: scale_steering(x)
     ])
 
     return transform, target_transform

@@ -169,6 +169,7 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         returns:
             float, the average loss for the epoch
         '''
+        no_time_dim_models = ["Resnet", "ResnetCBAM", "ConvNeXt", "DRFuser"]
         bcthw_models = ["Simple", "Swin", "MViTV2", "MViTV2Parallel","R3d", "R3dParallel", "R2Plus1d", "R2Plus1dCBAM"]
         epoch_loss = 0
         context = torch.no_grad() if mode == "TEST" else contextlib.nullcontext()
@@ -177,24 +178,32 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
         training_batches = portion_of_dataset * total_batches
         with context:
             pbar = tqdm(loader, total=training_batches, desc=f"[GPU{global_rank}] {mode}", disable=local_rank != 0)
-            for i, (combined_images, steering_angle) in enumerate(pbar):
+            for i, (combined_images, steering_angles) in enumerate(pbar):
                 if i >= training_batches:
                     break
                 if mode != "TEST":
                     optimizer.zero_grad()
                 
-                #b, t, c, h, w = combined_images.shape
                 combined_images = combined_images.to(local_rank)
-                steering_angle = steering_angle.to(local_rank)
+                steering_angles = steering_angles.to(local_rank)
+                b, t, c, h, w = combined_images.shape
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                     # for transformer models, we need to reshuffle the dimensions to their expected
                     # to b, c, t, h, w from the original b, t, c, h ,w
                     if model_type in bcthw_models:
                         combined_images = combined_images.permute(0, 2, 1, 3, 4)
+                    # for non-time models, we need to reshape the input to b * t, c, h, w
+                    # furthermore, we must have the output compare all the time slots instead of just the last one
+                    elif model_type in no_time_dim_models:
+                        combined_images = combined_images.reshape(b * t, c, h, w)
+                        # after this line steering_angle[:, -1] will be all the time slots
+                        steering_angles = steering_angles.reshape(b * t, 1)
+                    
                     outputs = model(combined_images).squeeze(1)
                     # only consider the output for the last time slot
                     # take the rest of the input as "context"
-                    target_angles = steering_angle[:, -1]
+
+                    target_angles = steering_angles[:, -1]
                     loss = criterion(outputs, target_angles)
                     
                 if mode != "TEST":
@@ -215,7 +224,7 @@ def run_epoch(model, loader, optimizer, scaler, criterion, mode, portion_of_data
                 # Show current loss in the progress bar
                 pbar.set_postfix(loss=f"{loss.item():.4f}")
                 
-                del combined_images, steering_angle, outputs
+                del combined_images, steering_angles, outputs
                 torch.cuda.empty_cache()
                 gc.collect()
 

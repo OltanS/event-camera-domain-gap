@@ -14,6 +14,8 @@ from models.convnext_variants.modified_convnext import ModifiedConvNeXtTiny
 from models.convnext_variants.convnext_spatiotemporal import ConvNeXtTinyTemporalCBAM
 from models.video_transformers.modified_swin3d_t import ModifiedSwin3Dt
 
+from models.drfuser.drfuser_self_attention import DRFuser_self_attention
+
 def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     '''
     Sets up the model based on the given parameters
@@ -24,9 +26,15 @@ def setup_model(MODEL_TYPE, MODEL_DIMS, device):
     returns:
         model: nn.Module, the model to use
     '''
+    
+    # Adapted from DRFuser for benchmarking, more details on the associated file
+
 
     if MODEL_TYPE == "Simple":
         model = SimpleModel().to(device)
+    
+    elif MODEL_TYPE == "DRFuser":
+        model = DRFuser_self_attention().to(device)
     
     elif MODEL_TYPE == "Resnet":
         model = ModifiedResnet(in_channels=MODEL_DIMS, out_features=1).to(device)

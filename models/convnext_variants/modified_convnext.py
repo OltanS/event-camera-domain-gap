@@ -38,18 +38,14 @@ class ModifiedConvNeXtTiny(nn.Module):
             bias=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # get it to work on the last one of the time dimension
-        # so we don't have to alter how training works.
-        b, t, c, h, w = x.shape
-        last_timeslots = x[:, -1, :, :, :]
-        return self.model(last_timeslots)
+        return self.model(x)
 
 def _test_convnext_tiny():
     model = ModifiedConvNeXtTiny(in_channels=2, out_features=1)
-    x = torch.randn(32, 8, 2, 224, 224)
+    x = torch.randn(32 * 8, 2, 224, 224)
     out = model(x)
 
-    assert out.shape == (32, 1)
+    assert out.shape == (32 * 8, 1)
     print("Convext tiny test passed")
 
 def main():
