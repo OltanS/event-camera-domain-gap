@@ -77,13 +77,15 @@ class LazyDataset(Dataset):
 
             # For example, if both APS and DVS streams are used,
             # load each stream and concatenate along the channel dimension.
-            data_aps = f[self.APS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
-            data_dvs = f[self.DVS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
             if self.use_aps and self.use_dvs:
+                data_aps = f[self.APS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
+                data_dvs = f[self.DVS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
                 data = np.stack((data_aps, data_dvs), axis=3)  # shape: (window_size, H, W, C1+C2)
             elif self.use_aps:
+                data_aps = f[self.APS_FRAME_NAME][start:end]
                 data = np.expand_dims(data_aps, axis=3)  # shape: (window_size, H, W, C)
             elif self.use_dvs:
+                data_dvs = f[self.DVS_FRAME_NAME][start:end]
                 data = np.expand_dims(data_dvs, axis=3)  # shape: (window_size, H, W, C)
 
             # Read target steering angles corresponding to the window.
