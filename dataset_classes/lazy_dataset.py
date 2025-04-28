@@ -31,6 +31,12 @@ class LazyDataset(Dataset):
             - self.DTYPE: np.dtype, the data type of the target.
         '''
         super().__init__()
+
+        # FOR CHECKING AGAINST CAUSAL CONFUSION
+        self.shuffle_frame = True
+        self.warned_shuffle_frame = False
+
+
         self.transform = transform
         self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
         self.target_transform = target_transform
@@ -101,7 +107,17 @@ class LazyDataset(Dataset):
         filename = self.dataset_dict[index]["filename"]
         window_index = self.dataset_dict[index]["window_index"]
         data, target = self.read_file(filename, window_index)
+        if not self.warned_shuffle_frame:
+            print(f"WARNING! Performing with shuffled frame data, to check for over reliance on optical flow (causal confusion).") 
+            self.warned_shuffle_frame = True
         
+        if self.shuffle_frame:
+            # make the whole sequence just repeats of the last frame
+            # Store the last frame that we'll use for the static sequence
+            middle_frames = data[0:-1].copy()
+            np.random.shuffle(middle_frames)
+            data =  np.concatenate([middle_frames, data[-1:]], axis=0)
+
         if self.transform:
                 # print(f"Data shape {data.shape} target shape {target.shape}")
                 if self.transform:
