@@ -3,7 +3,7 @@ from matplotlib import animation
 import os
 import numpy as np
 
-def animate_loader(data_loader, save_path, global_rank, num_batches=10, time_per_frame=200):
+def animate_loader(data_loader, save_path, global_rank, num_batches=1, time_per_frame=2000):
     '''
     Animates the first num_batches of the data_loader.
     args:
