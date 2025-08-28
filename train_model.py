@@ -19,9 +19,9 @@ def main():
     writer = setup_tensorboard(config["MODEL_SAVE_DIR"], config["GLOBAL_RANK"])
 
     train_loader, test_loader = prepare_dataloader(config["TRAINING_DIR"], config["TEST_DIR"], config["BATCH_SIZE"], config["AUGMENT_DATA"], config["USE_APS"], config["USE_DVS"])
-    report_progress(config["GLOBAL_RANK"], f"Train loader has {len(train_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(train_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
-    report_progress(config["GLOBAL_RANK"], f"Test loader has {len(test_loader)} batches of length {config['WINDOW_SIZE']}, equalling {len(test_loader) * config['BATCH_SIZE'] * config['WINDOW_SIZE']} frames.")
-    
+    report_progress(config["GLOBAL_RANK"], f"Train loader has {len(train_loader)} batches, equalling {len(train_loader) * config['BATCH_SIZE']} frames.")
+    report_progress(config["GLOBAL_RANK"], f"Test loader has {len(test_loader)} batches, equalling {len(test_loader) * config['BATCH_SIZE']} frames.")
+
     criterion = nn.MSELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["LEARNING_RATE"], weight_decay=config["WEIGHT_DECAY"])
     def lr_lambda(epoch):

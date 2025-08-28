@@ -41,7 +41,6 @@ def setup_config_variables():
     # --- Preprocessing parameters ---
     config["TRAINING_SPLIT"] = float(os.getenv("TRAINING_SPLIT"))
     config["PORTION_OF_DATASET"] = float(os.getenv("PORTION_OF_DATASET", 1.0))
-    config["WINDOW_SIZE"] = int(os.getenv("WINDOW_SIZE"))
     config["RANDOM_SEED"] = int(os.getenv("RANDOM_SEED"))
     config["PERFORM_PRUNING"] = bool(int(os.getenv("PERFORM_PRUNING")))
     config["PRUNE_SPEED"] = bool(int(os.getenv("PRUNE_SPEED")))

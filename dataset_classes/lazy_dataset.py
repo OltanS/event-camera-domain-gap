@@ -32,9 +32,8 @@ class LazyDataset(Dataset):
         '''
         super().__init__()
         self.transform = transform
-        self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
         self.target_transform = target_transform
-        self.window_size = config["WINDOW_SIZE"]
+        self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
         self.use_aps = config["USE_APS"]
         self.use_dvs = config["USE_DVS"]
         if not (self.use_aps or self.use_dvs):
@@ -50,7 +49,7 @@ class LazyDataset(Dataset):
     def find_num_windows(self, path_to_file):
         # Note the integer division here, drop_last is implied true which is OK.
         with h5py.File(path_to_file, "r") as f:
-            return len(f["steering_wheel_angle"]) // self.window_size
+            return len(f["steering_wheel_angle"])
     
     def create_dataset_dict(self):
         total_windows = 0
@@ -70,26 +69,23 @@ class LazyDataset(Dataset):
 
         return total_windows, dataset_dict
     
-    def read_file(self, filename, window_index):
+    def read_file(self, filename, index):
         with h5py.File(filename, "r") as f:
-            start = window_index * self.window_size
-            end = start + self.window_size
-
             # For example, if both APS and DVS streams are used,
             # load each stream and concatenate along the channel dimension.
             if self.use_aps and self.use_dvs:
-                data_aps = f[self.APS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
-                data_dvs = f[self.DVS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
-                data = np.stack((data_aps, data_dvs), axis=3)  # shape: (window_size, H, W, C1+C2)
+                data_aps = f[self.APS_FRAME_NAME][index]  # shape: (H, W)
+                data_dvs = f[self.DVS_FRAME_NAME][index]  # shape: (H, W)
+                data = np.stack((data_aps, data_dvs), axis=2)  # shape: (H, W, C1+C2)
             elif self.use_aps:
-                data_aps = f[self.APS_FRAME_NAME][start:end]
-                data = np.expand_dims(data_aps, axis=3)  # shape: (window_size, H, W, C)
+                data_aps = f[self.APS_FRAME_NAME][index]
+                data = np.expand_dims(data_aps, axis=2)  # shape: (H, W, C)
             elif self.use_dvs:
-                data_dvs = f[self.DVS_FRAME_NAME][start:end]
-                data = np.expand_dims(data_dvs, axis=3)  # shape: (window_size, H, W, C)
+                data_dvs = f[self.DVS_FRAME_NAME][index]
+                data = np.expand_dims(data_dvs, axis=2)  # shape: (H, W, C)
 
             # Read target steering angles corresponding to the window.
-            target = f["steering_wheel_angle"][start:end]  # shape: (window_size,)
+            target = f["steering_wheel_angle"][index]  # shape: (window_size,)
             # Ensure target is in numpy array format.
             target = np.array(target)
         return data, target
@@ -105,21 +101,7 @@ class LazyDataset(Dataset):
         if self.transform:
                 # print(f"Data shape {data.shape} target shape {target.shape}")
                 if self.transform:
-                    # If the data represents a sequence (e.g. multiple frames), apply transform per frame.
-                    if data.ndim == 4:  # expecting shape (num_frames, height, width, channels)
-                        
-                        # make all frames in sequence have same transforms
-                        frames = []
-                        state = torch.get_rng_state()
-                        for frame in data:
-                            torch.set_rng_state(state)
-                            frames.append(self.transform(frame))
-                        
-                        # reset RNG state
-                        torch.manual_seed(torch.seed())              
-                        data = torch.stack(frames, dim=0)
-                    else:
-                        data = self.transform(data)
+                    data = self.transform(data)
         
         target = target.astype(self.DTYPE)
         if self.target_transform:
