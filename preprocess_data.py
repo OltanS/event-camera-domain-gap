@@ -59,40 +59,34 @@ def prune_dataset(source_dir, config, is_training=True):
     data_files = glob.glob(f"{source_dir}/*.hdf5")
     for i, file in enumerate(data_files):
         p = Path(file)
-        print(f"Pruning {'training' if is_training else 'test'} file: {p.name}. "
-              f"Batch size is {config['WINDOW_SIZE']}. [{i + 1}/{len(data_files)}]")
+        print(f"Pruning {'training' if is_training else 'test'} file: {p.name}. [{i + 1}/{len(data_files)}]")
         
-        discarded_batches = []
+        indices_to_remove = []
         with h5py.File(file, "r") as f:
             speeds = np.array(f["vehicle_speed"])
             steering_angles = np.array(f["steering_wheel_angle"])
             file_len = len(speeds)
             print(f"There are {file_len} entries in this file.")
             
-            for j in range(0, len(speeds), config["WINDOW_SIZE"]):
+            for j in range(0, len(speeds)):
                 # Speed threshold check
                 if config["PRUNE_SPEED"]:
-                    if np.median(speeds[j:j+config["WINDOW_SIZE"]]) < config["SPEED_THRESHOLD"]:
-                        discarded_batches.append(j)
+                    if speeds[j] < config["SPEED_THRESHOLD"]:
+                        indices_to_remove.append(j)
                         continue
                 
                 # Training-specific steering pruning
                 if is_training and config["PRUNE_STEERING"]:
-                    if (np.median(np.absolute(steering_angles[j:j+config["WINDOW_SIZE"]])) < 
-                            config["STEERING_THRESHOLD"] and random.random() < config["STEERING_DISCARD_CHANCE"]):
-                        discarded_batches.append(j)
+                    if steering_angles[j] < config["STEERING_THRESHOLD"] and random.random() < config["STEERING_DISCARD_CHANCE"]:
+                        indices_to_remove.append(j)
                         continue
                 
                 # Steering angle limits check
-                if any(angle > config["MAX_STEERING"] or angle < config["MIN_STEERING"] 
-                       for angle in steering_angles[j:j+config["WINDOW_SIZE"]]):
-                    discarded_batches.append(j)
+                if steering_angles[j] > config["MAX_STEERING"] or steering_angles[j] < config["MIN_STEERING"]:
+                    indices_to_remove.append(j)
                     continue
             
             # Keep only non-discarded indices
-            indices_to_remove = []
-            for idx in discarded_batches:
-                indices_to_remove.extend(range(idx, idx + config["WINDOW_SIZE"]))
             indices_to_keep = np.setdiff1d(np.arange(file_len), indices_to_remove)
             
             renamed_file = f"{pruned_path}/{p.stem}_pruned.hdf5"
@@ -103,8 +97,8 @@ def prune_dataset(source_dir, config, is_training=True):
                     full_data = np.array(f[dset_name])
                     new_f.create_dataset(dset_name, data=full_data[indices_to_keep])
             
-            print(f"Discarded {len(discarded_batches)} batches, "
-                  f"{'as their median was below the thresholds, ' if is_training else ''}"
+            print(f"Discarded {len(indices_to_remove)} batches, "
+                  f"{'as their values were below the thresholds, ' if is_training else ''}"
                   f"totalling {len(indices_to_remove)} frames.")
             print(f"{len(indices_to_keep)} frames remain, with average speed {np.average(speeds[indices_to_keep])} "
                   f"and average absolute steering {np.average(np.absolute(steering_angles[indices_to_keep]))}")

@@ -32,7 +32,6 @@ def setup_config_variables():
     if config["MODEL_DIMS"] == 0:
         raise Exception("MODEL_DIMS must be non-zero")
     
-    config["WARM_START"] = bool(int(os.getenv("WARM_START")))
     config["EPOCHS"] = int(os.getenv("EPOCHS"))
     config["BATCH_SIZE"] = int(os.getenv("BATCH_SIZE"))
     config["LEARNING_RATE"] = float(os.getenv("LEARNING_RATE"))
@@ -40,8 +39,6 @@ def setup_config_variables():
     
     # --- Preprocessing parameters ---
     config["TRAINING_SPLIT"] = float(os.getenv("TRAINING_SPLIT"))
-    config["PORTION_OF_DATASET"] = float(os.getenv("PORTION_OF_DATASET", 1.0))
-    config["WINDOW_SIZE"] = int(os.getenv("WINDOW_SIZE"))
     config["RANDOM_SEED"] = int(os.getenv("RANDOM_SEED"))
     config["PERFORM_PRUNING"] = bool(int(os.getenv("PERFORM_PRUNING")))
     config["PRUNE_SPEED"] = bool(int(os.getenv("PRUNE_SPEED")))

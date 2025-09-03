@@ -17,18 +17,6 @@ def log_loss(epoch, train_loss, test_loss, log_dir):
 def get_timestamp():
     return datetime.datetime.now().strftime("[%H:%M:%S]")
 
-def report_progress(global_rank, message, epoch=None, total_epochs=None):
+def report_progress(message, epoch=None, total_epochs=None):
     epoch_str = f"[E:{epoch + 1}/{total_epochs}]" if epoch is not None and total_epochs is not None else ""
-    print(f"{get_timestamp()}[GPU{global_rank}]{epoch_str} {message}")
-
-def setup_tensorboard(log_dir, global_rank):
-    log_dir = os.path.join(log_dir, "tensorboard")
-    if global_rank == 0:
-        os.makedirs(log_dir, exist_ok=True)
-        return SummaryWriter(log_dir)
-    
-    return None
-
-def close_tensorboard(writer):
-    if writer is not None:
-        writer.close()
+    print(f"{get_timestamp()}{epoch_str} {message}")

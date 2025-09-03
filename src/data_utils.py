@@ -3,8 +3,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 import torchvision.transforms.v2 as transforms_v2
 
-from dataset_classes.lazy_dataset import LazyDataset
-
 def setup_transforms(augment_data: bool, use_aps: bool, use_dvs: bool):
     '''
     Prepares the transforms for the dataset.  
@@ -75,30 +73,3 @@ def setup_transforms(augment_data: bool, use_aps: bool, use_dvs: bool):
 
     return transform, target_transform
 
-def prepare_dataloader(training_dir, test_dir, batch_size, augment_data, use_aps, use_dvs):
-    '''
-    Creates the dataloaders for the training and test datasets, based on the lazy loading dataset class.  
-    The dataset class has to lazy load the data because the dataset is too large to fit in memory.
-    args:
-        training_dir (str): The directory containing the training data, can be None, will return None for train loader.
-        test_dir (str): The directory containing the test data, can be None, will return None for test loader.
-        batch_size (int): The batch size for the dataloaders (the dataloader has other parameters that are pulled from the config)
-        augment_data (bool): Whether to augment with setup_transforms
-
-        returns:
-            train_loader (DataLoader): The dataloader for the training dataset
-            test_loader (DataLoader): The dataloader for the test
-
-    '''
-    train_loader, test_loader = None, None
-    if training_dir:
-        transform, target_transform = setup_transforms(augment_data=augment_data, use_aps=use_aps, use_dvs=use_dvs)
-        train_dataset = LazyDataset(training_dir, transform=transform, target_transform=target_transform)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(train_dataset))
-    
-    if test_dir:
-        test_transform, test_target_transform = setup_transforms(augment_data=False, use_aps=use_aps, use_dvs=use_dvs)
-        test_dataset = LazyDataset(test_dir, transform=test_transform, target_transform=test_target_transform)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=4, pin_memory=True, prefetch_factor=5, sampler=DistributedSampler(test_dataset))
-
-    return train_loader, test_loader

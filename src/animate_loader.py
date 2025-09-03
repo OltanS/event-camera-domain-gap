@@ -3,7 +3,7 @@ from matplotlib import animation
 import os
 import numpy as np
 
-def animate_loader(data_loader, save_path, global_rank, num_batches=1, time_per_frame=2000):
+def animate_loader(data_loader, save_path, num_batches=1, time_per_frame=2000):
     '''
     Animates the first num_batches of the data_loader.
     args:
@@ -13,7 +13,7 @@ def animate_loader(data_loader, save_path, global_rank, num_batches=1, time_per_
         num_batches (int): The number of batches to animate
         time_per_frame (int): The time in ms per frame
     '''
-    save_path += f"/gpu{global_rank}_animation.gif"
+    save_path += f"ddd_animation.gif"
 
     print(f"Saving an animation of the first {num_batches} batches at {time_per_frame} ms per frame, to {save_path}")
     frames = []  # for storing the generated images

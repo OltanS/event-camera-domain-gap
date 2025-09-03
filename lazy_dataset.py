@@ -23,7 +23,6 @@ class LazyDataset(Dataset):
 
             Some attributes are inferred from the config file, to keep the signature of the __init__ method clean.
             These are:
-            - self.window_size: int, the number of frames in a window.
             - self.use_aps: bool, whether to use the APS stream.
             - self.use_dvs: bool, whether to use the DVS stream.
             - self.APS_FRAME_NAME: str, the name of the APS frame in the HDF5 file.
@@ -33,8 +32,6 @@ class LazyDataset(Dataset):
         super().__init__()
         self.transform = transform
         self.data_file_list = glob.glob(f"{data_folder}/*.hdf5")
-        self.target_transform = target_transform
-        self.window_size = config["WINDOW_SIZE"]
         self.use_aps = config["USE_APS"]
         self.use_dvs = config["USE_DVS"]
         if not (self.use_aps or self.use_dvs):
@@ -47,49 +44,46 @@ class LazyDataset(Dataset):
 
         self.total_windows, self.dataset_dict = self.create_dataset_dict()
 
-    def find_num_windows(self, path_to_file):
+    def get_file_len(self, path_to_file):
         # Note the integer division here, drop_last is implied true which is OK.
         with h5py.File(path_to_file, "r") as f:
-            return len(f["steering_wheel_angle"]) // self.window_size
+            return len(f["steering_wheel_angle"])
     
     def create_dataset_dict(self):
-        total_windows = 0
+        total_len = 0
         overall_index = 0
         dataset_dict = {}
         for data_file in self.data_file_list:
-            windows_of_current_file = self.find_num_windows(data_file)
-            total_windows += windows_of_current_file
+            current_file_len = self.get_file_len(data_file)
+            total_len += current_file_len
 
             # Show which overall index corresponds to which file and window index
-            for i in range(windows_of_current_file):
+            for i in range(current_file_len):
                 dataset_dict[overall_index] = {
                     "filename" : data_file,
-                    "window_index" : i
+                    "file_index" : i
                 }
                 overall_index += 1
 
-        return total_windows, dataset_dict
+        return total_len, dataset_dict
     
-    def read_file(self, filename, window_index):
+    def read_file(self, filename, index):
         with h5py.File(filename, "r") as f:
-            start = window_index * self.window_size
-            end = start + self.window_size
-
             # For example, if both APS and DVS streams are used,
             # load each stream and concatenate along the channel dimension.
             if self.use_aps and self.use_dvs:
-                data_aps = f[self.APS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
-                data_dvs = f[self.DVS_FRAME_NAME][start:end]  # shape: (window_size, H, W)
-                data = np.stack((data_aps, data_dvs), axis=3)  # shape: (window_size, H, W, C1+C2)
+                data_aps = f[self.APS_FRAME_NAME][index]  # shape: (H, W)
+                data_dvs = f[self.DVS_FRAME_NAME][index]  # shape: (H, W)
+                data = np.stack((data_aps, data_dvs), axis=2)  # shape: (H, W, C1+C2)
             elif self.use_aps:
-                data_aps = f[self.APS_FRAME_NAME][start:end]
-                data = np.expand_dims(data_aps, axis=3)  # shape: (window_size, H, W, C)
+                data_aps = f[self.APS_FRAME_NAME][index]
+                data = np.expand_dims(data_aps, axis=2)  # shape: (H, W, C)
             elif self.use_dvs:
-                data_dvs = f[self.DVS_FRAME_NAME][start:end]
-                data = np.expand_dims(data_dvs, axis=3)  # shape: (window_size, H, W, C)
+                data_dvs = f[self.DVS_FRAME_NAME][index]
+                data = np.expand_dims(data_dvs, axis=2)  # shape: (H, W, C)
 
             # Read target steering angles corresponding to the window.
-            target = f["steering_wheel_angle"][start:end]  # shape: (window_size,)
+            target = f["steering_wheel_angle"][index]  # shape: (window_size,)
             # Ensure target is in numpy array format.
             target = np.array(target)
         return data, target
@@ -99,27 +93,13 @@ class LazyDataset(Dataset):
 
     def __getitem__(self, index):
         filename = self.dataset_dict[index]["filename"]
-        window_index = self.dataset_dict[index]["window_index"]
-        data, target = self.read_file(filename, window_index)
+        file_index = self.dataset_dict[index]["file_index"]
+        data, target = self.read_file(filename, file_index)
 
         if self.transform:
                 # print(f"Data shape {data.shape} target shape {target.shape}")
                 if self.transform:
-                    # If the data represents a sequence (e.g. multiple frames), apply transform per frame.
-                    if data.ndim == 4:  # expecting shape (num_frames, height, width, channels)
-                        
-                        # make all frames in sequence have same transforms
-                        frames = []
-                        state = torch.get_rng_state()
-                        for frame in data:
-                            torch.set_rng_state(state)
-                            frames.append(self.transform(frame))
-                        
-                        # reset RNG state
-                        torch.manual_seed(torch.seed())              
-                        data = torch.stack(frames, dim=0)
-                    else:
-                        data = self.transform(data)
+                    data = self.transform(data)
         
         target = target.astype(self.DTYPE)
         if self.target_transform:
