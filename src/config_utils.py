@@ -52,7 +52,7 @@ def setup_config_variables():
     config["MIN_STEERING"] = int(os.getenv("MIN_STEERING"))
     config["MAX_STEERING"] = int(os.getenv("MAX_STEERING"))
 
-    # --- Dataset parameters, for Event Framing with my_utils/prepare-dataset.sh ---
+    # --- Dataset parameters, for Event Framing with scripts/prepare-dataset.sh ---
     config["EXPORT_DVS"] = os.getenv("EXPORT_DVS")
     config["EXPORT_APS"] = os.getenv("EXPORT_APS")
     config["BINSIZE_MS"] = int(os.getenv("BINSIZE_MS"))

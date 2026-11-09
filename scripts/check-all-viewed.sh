@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # run me from the main directory
-cd my_utils/csv_files
+cd scripts/csv_files
 # Check if both files exist
 if [[ ! -f all-files.csv ]] || [[ ! -f recording-start-stop.csv ]]; then
     echo "Error: Both all-files.csv and recording-start-stop.csv must exist."
