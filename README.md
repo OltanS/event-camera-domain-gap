@@ -32,3 +32,6 @@ IMAGES_DIR=/path/to/save/images/${MODEL_TYPE}
 8. Change the training options in [config.env](config.env) to choose your model and hyperparameters of choice. More details on the available models can be found [here](src/model_utils.py).
 9. (Optional) Change animate_loader to 1 if you'd like a visualization of the data loaders, showing the DVS, APS and combined frames in addition to the steering angle.
 10. Since the model was trained in a distributed environment, you should run the training on a single machine via ```torchrun train_model.py```.
+## License
+
+MIT. Third-party code is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
